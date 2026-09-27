@@ -1,133 +1,69 @@
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import MapView from './components/MapView'
-import RiskPanel from './components/RiskPanel'
-import AdvisoryPreview from './components/AdvisoryPreview'
-import InsuranceTriggerPanel from './components/InsuranceTriggerPanel'
-import {
-  fetchDistrictRisk, evaluateTriggers, generateAdvisory,
-  type DistrictRisk, type AdvisoryOut,
-} from './api/client'
-
-const DEMO_DISTRICT = 'IN-OD-PURI'
-const DEMO_EVENT    = 'CYCLONE-FANI-2019'
+import Dashboard from './pages/Dashboard'
+import AdminPanel from './pages/AdminPanel'
 
 export default function App() {
-  const [selectedWard, setSelectedWard]   = useState<string | null>(null)
-  const [advisory, setAdvisory]           = useState<AdvisoryOut | null>(null)
-  const [showDispatch, setShowDispatch]   = useState(false)
-  const queryClient = useQueryClient()
-
-  // ── Fetch risk data ────────────────────────────────────────
-  const { data: risk, isLoading } = useQuery<DistrictRisk>({
-    queryKey: ['district-risk', DEMO_DISTRICT],
-    queryFn: () => fetchDistrictRisk(DEMO_DISTRICT),
-    staleTime: 60_000,
-  })
-
-  const ward = risk?.wards.find(w => w.ward_id === (selectedWard ?? risk.wards[0]?.ward_id))
-
-  // ── Evaluate triggers ──────────────────────────────────────
-  const triggerMutation = useMutation({
-    mutationFn: () => evaluateTriggers(DEMO_EVENT, {
-      surge_height: ward?.surge_height_m ?? 0,
-      rainfall_total: ward?.rainfall_mm_48h ?? 0,
-      wind_speed: ward?.wind_speed_kmh ?? 0,
-    }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['triggers', DEMO_EVENT] })
-    },
-  })
-
-  // ── Generate advisory ──────────────────────────────────────
-  const advisoryMutation = useMutation({
-    mutationFn: () => generateAdvisory(
-      ward!.ward_id,
-      DEMO_EVENT,
-      ward!.severity_tier,
-      ward as unknown as object,
-    ),
-    onSuccess: (data) => setAdvisory(data),
-  })
-
-  const severityClass = ward?.severity_tier.toLowerCase().replace(' ', '-') === 'evacuation order'
-    ? 'evacuation'
-    : ward?.severity_tier.toLowerCase() ?? 'watch'
+  const [activePage, setActivePage] = useState<'dashboard' | 'admin'>('dashboard')
 
   return (
-    <div className="app-shell">
-      {/* ── Header ──────────────────────────────────────── */}
-      <header className="app-header">
-        <div className="logo-mark">🌀</div>
-        <div>
-          <div className="header-title">Cyclone Anticipatory Action Platform</div>
-          <div className="header-subtitle">Bay of Bengal & Coastal APAC — AI-Powered Early Warning</div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+      <nav style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '6px 16px',
+        background: '#0d131f',
+        borderBottom: '1px solid #1e293b',
+        fontSize: 13,
+        zIndex: 100,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, color: '#38bdf8' }}>
+          <span>🌀</span>
+          <span style={{ letterSpacing: '0.02em' }}>Cyclone Anticipatory Action</span>
         </div>
-        <div className="header-spacer" />
-
-        {risk && (
-          <span className={`severity-badge ${severityClass}`} id="severity-header-badge">
-            {ward?.severity_tier ?? 'Loading…'}
-          </span>
-        )}
-
-        <div className="live-badge">
-          <div className="live-dot" />
-          DEMO MODE — Cyclone Fani 2019
+        <div style={{ display: 'flex', gap: 4, marginLeft: 20 }}>
+          <button
+            id="nav-btn-dashboard"
+            onClick={() => setActivePage('dashboard')}
+            style={{
+              padding: '5px 14px',
+              borderRadius: 6,
+              border: 'none',
+              background: activePage === 'dashboard' ? '#1e293b' : 'transparent',
+              color: activePage === 'dashboard' ? '#38bdf8' : '#94a3b8',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: 12,
+              transition: 'all 0.15s ease',
+            }}
+          >
+            🗺️ Operational Dashboard
+          </button>
+          <button
+            id="nav-btn-admin"
+            onClick={() => setActivePage('admin')}
+            style={{
+              padding: '5px 14px',
+              borderRadius: 6,
+              border: 'none',
+              background: activePage === 'admin' ? '#1e293b' : 'transparent',
+              color: activePage === 'admin' ? '#38bdf8' : '#94a3b8',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: 12,
+              transition: 'all 0.15s ease',
+            }}
+          >
+            ⚙️ Admin &amp; RBAC Panel
+          </button>
         </div>
-      </header>
-
-      {/* ── Left panel: Risk data ─────────────────────── */}
-      <aside className="left-panel">
-        <div className="panel-section">
-          <div className="panel-label">Active Cyclone</div>
-          <div className="cyclone-card active" id="cyclone-fani-card">
-            <div className="cyclone-name">🌀 Cyclone Fani (2019)</div>
-            <div className="cyclone-meta">
-              ESCS · Landfall: Puri, Odisha · T-72h simulation
-            </div>
-          </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 11, color: '#64748b' }}>Bay of Bengal &amp; Coastal APAC</span>
         </div>
-
-        {ward && (
-          <RiskPanel
-            ward={ward}
-            onGenerateAdvisory={() => advisoryMutation.mutate()}
-            isGenerating={advisoryMutation.isPending}
-          />
-        )}
-
-        {isLoading && (
-          <div className="panel-section">
-            <div className="loading" style={{ height: 120, borderRadius: 12 }} />
-          </div>
-        )}
-      </aside>
-
-      {/* ── Map ──────────────────────────────────────── */}
-      <main className="map-container">
-        <MapView
-          ward={ward ?? null}
-          onWardSelect={setSelectedWard}
-        />
-      </main>
-
-      {/* ── Right panel: Advisory + Insurance ────────── */}
-      <aside className="right-panel">
-        {advisory && (
-          <AdvisoryPreview
-            advisory={advisory}
-            onDispatch={() => setShowDispatch(true)}
-          />
-        )}
-
-        <InsuranceTriggerPanel
-          eventId={DEMO_EVENT}
-          onEvaluate={() => triggerMutation.mutate()}
-          isEvaluating={triggerMutation.isPending}
-          evaluationResult={triggerMutation.data}
-        />
-      </aside>
+      </nav>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {activePage === 'dashboard' ? <Dashboard /> : <AdminPanel />}
+      </div>
     </div>
   )
 }

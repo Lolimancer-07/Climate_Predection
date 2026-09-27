@@ -35,10 +35,14 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 async def init_db():
     """Create all tables on startup (dev mode). Use Alembic in production."""
-    async with engine.begin() as conn:
-        # Enable PostGIS extension
-        await conn.execute(
-            __import__("sqlalchemy").text("CREATE EXTENSION IF NOT EXISTS postgis;")
-        )
-        from backend.db import models  # noqa: F401 — registers all models
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            # Enable PostGIS extension
+            await conn.execute(
+                __import__("sqlalchemy").text("CREATE EXTENSION IF NOT EXISTS postgis;")
+            )
+            from backend.db import models  # noqa: F401 — registers all models
+            await conn.run_sync(Base.metadata.create_all)
+        print("✓ Connected to PostgreSQL + PostGIS database.")
+    except Exception as e:
+        print(f"⚠️  Database connection skipped ({e}). Running in in-memory / demo mode.")

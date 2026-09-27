@@ -57,6 +57,7 @@ export interface AdvisoryOut {
   severity_tier: string
   content_en: string
   content_local: string
+  generated_by?: string
   validation_passed: boolean
   validation_warnings: string[]
   status: string
