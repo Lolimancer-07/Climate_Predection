@@ -1,0 +1,63 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: cyclone_postgis
+    environment:
+      POSTGRES_USER: cyclone
+      POSTGRES_PASSWORD: cyclone
+      POSTGRES_DB: cyclone_platform
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cyclone -d cyclone_platform"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cyclone_backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://cyclone:cyclone@db:5432/cyclone_platform
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./data-ingestion:/data-ingestion
+      - ./modeling:/modeling
+      - ./ai-reasoning:/ai-reasoning
+      - ./dispatch:/dispatch
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  mock_insurer:
+    image: python:3.11-slim
+    container_name: mock_insurer_webhook
+    ports:
+      - "9000:9000"
+    command: >
+      python -c "
+      import http.server, json, datetime
+      class H(http.server.BaseHTTPRequestHandler):
+        def do_POST(self):
+          l = int(self.headers['Content-Length'])
+          body = json.loads(self.rfile.read(l))
+          print(f'[{datetime.datetime.utcnow().isoformat()}] TRIGGER RECEIVED:', json.dumps(body, indent=2))
+          self.send_response(200)
+          self.end_headers()
+          self.wfile.write(b'{\"status\": \"received\"}')
+      http.server.HTTPServer(('', 9000), H).serve_forever()
+      "
+
+volumes:
+  pgdata:

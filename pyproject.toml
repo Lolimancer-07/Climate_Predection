@@ -1,0 +1,13 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-v --tb=short --cov=. --cov-report=term-missing"
+pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["modeling", "ai_reasoning", "dispatch", "backend"]
+omit = ["tests/*", "notebooks/*", "infra/*"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.backends.legacy:build"

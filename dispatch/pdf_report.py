@@ -1,0 +1,183 @@
+"""
+dispatch/pdf_report.py
+Generate a formal advisory PDF using ReportLab (WeasyPrint fallback).
+"""
+from __future__ import annotations
+import io
+from datetime import datetime, timezone
+from typing import Optional
+
+
+def generate_advisory_pdf(
+    advisory_id: str,
+    ward_name: str,
+    event_name: str,
+    severity_tier: str,
+    content_en: str,
+    content_local: str = "",
+    surge_height_m: float = 0.0,
+    rainfall_mm_48h: float = 0.0,
+    population: int = 0,
+    reviewed_by: str = "DDMA Operator",
+    map_image_bytes: Optional[bytes] = None,
+) -> bytes:
+    """
+    Generate a PDF advisory report.
+    Tries ReportLab first, falls back to a minimal HTML-based PDF,
+    then to a plain-text bytes fallback for demo robustness.
+    """
+    try:
+        return _build_pdf_reportlab(
+            advisory_id, ward_name, event_name, severity_tier,
+            content_en, content_local, surge_height_m, rainfall_mm_48h,
+            population, reviewed_by,
+        )
+    except ImportError:
+        pass
+
+    try:
+        return _build_pdf_weasyprint(
+            advisory_id, ward_name, event_name, severity_tier, content_en,
+        )
+    except ImportError:
+        pass
+
+    # Plain-text bytes fallback
+    text = _build_plain_text(
+        advisory_id, ward_name, event_name, severity_tier, content_en, reviewed_by,
+    )
+    return text.encode("utf-8")
+
+
+# ── ReportLab implementation ─────────────────────────────────────────────────
+
+def _build_pdf_reportlab(
+    advisory_id, ward_name, event_name, severity_tier,
+    content_en, content_local, surge_height_m, rainfall_mm_48h,
+    population, reviewed_by,
+) -> bytes:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import cm
+    from reportlab.lib import colors
+    from reportlab.platypus import (
+        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable,
+    )
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4,
+                            rightMargin=2*cm, leftMargin=2*cm,
+                            topMargin=2*cm, bottomMargin=2*cm)
+
+    styles = getSampleStyleSheet()
+    title_style  = ParagraphStyle("Title2",  parent=styles["Heading1"],
+                                  fontSize=16, spaceAfter=4, textColor=colors.HexColor("#1e40af"))
+    head_style   = ParagraphStyle("Head2",   parent=styles["Heading2"],
+                                  fontSize=12, spaceAfter=4, textColor=colors.HexColor("#374151"))
+    body_style   = styles["Normal"]
+    label_style  = ParagraphStyle("Label",   parent=styles["Normal"],
+                                  fontSize=9, textColor=colors.gray)
+
+    SEVERITY_COLOR = {
+        "Watch": colors.HexColor("#f59e0b"),
+        "Warning": colors.HexColor("#f97316"),
+        "Evacuation Order": colors.HexColor("#ef4444"),
+    }.get(severity_tier, colors.HexColor("#f97316"))
+
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+    story = [
+        Paragraph(f"OFFICIAL DISASTER ADVISORY", title_style),
+        Paragraph(f"{severity_tier.upper()} — {ward_name}", head_style),
+        HRFlowable(color=SEVERITY_COLOR, thickness=3, width="100%"),
+        Spacer(1, 0.3*cm),
+
+        Paragraph(f"Advisory ID: {advisory_id}", label_style),
+        Paragraph(f"Event: {event_name}", label_style),
+        Paragraph(f"Issued: {now}", label_style),
+        Paragraph(f"Reviewed by: {reviewed_by}", label_style),
+        Spacer(1, 0.4*cm),
+
+        Paragraph("Hazard Summary", head_style),
+    ]
+
+    table_data = [
+        ["Parameter", "Value"],
+        ["Storm Surge Height", f"{surge_height_m:.1f} m"],
+        ["Rainfall (48h)", f"{rainfall_mm_48h:.0f} mm"],
+        ["Population at Risk", f"{population:,}"],
+        ["Severity Tier", severity_tier],
+    ]
+    table = Table(table_data, colWidths=[6*cm, 8*cm])
+    table.setStyle(TableStyle([
+        ("BACKGROUND",   (0, 0), (-1, 0),  colors.HexColor("#1e40af")),
+        ("TEXTCOLOR",    (0, 0), (-1, 0),  colors.white),
+        ("FONTNAME",     (0, 0), (-1, 0),  "Helvetica-Bold"),
+        ("FONTSIZE",     (0, 0), (-1, -1), 9),
+        ("GRID",         (0, 0), (-1, -1), 0.5, colors.HexColor("#e5e7eb")),
+        ("ROWBACKGROUNDS",(0, 1), (-1, -1), [colors.HexColor("#f9fafb"), colors.white]),
+        ("BOTTOMPADDING",(0, 0), (-1, -1), 4),
+        ("TOPPADDING",   (0, 0), (-1, -1), 4),
+    ]))
+
+    story += [table, Spacer(1, 0.5*cm),
+              Paragraph("Advisory Text (English)", head_style),
+              Paragraph(content_en.replace("\n", "<br/>"), body_style)]
+
+    if content_local:
+        story += [Spacer(1, 0.5*cm),
+                  Paragraph("Advisory Text (Local Language)", head_style),
+                  Paragraph(content_local.replace("\n", "<br/>"), body_style)]
+
+    story.append(Spacer(1, 1*cm))
+    story.append(Paragraph(
+        "This document was generated by the Cyclone Anticipatory Action Platform. "
+        "It has been reviewed and approved by an authorized DDMA operator before dispatch. "
+        "This is a DEMO document — not for operational use.",
+        label_style,
+    ))
+
+    doc.build(story)
+    buf.seek(0)
+    return buf.read()
+
+
+# ── WeasyPrint HTML fallback ─────────────────────────────────────────────────
+
+def _build_pdf_weasyprint(
+    advisory_id, ward_name, event_name, severity_tier, content_en,
+) -> bytes:
+    from weasyprint import HTML
+    html = f"""<!DOCTYPE html><html><head>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 40px; color: #111; }}
+        h1   {{ color: #1e40af; }}
+        h2   {{ color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 4px; }}
+        pre  {{ background: #f9fafb; padding: 12px; border-radius: 6px; white-space: pre-wrap; }}
+        .label {{ color: #6b7280; font-size: 12px; }}
+    </style></head><body>
+    <h1>OFFICIAL DISASTER ADVISORY — {severity_tier.upper()}</h1>
+    <h2>{ward_name}</h2>
+    <p class="label">Advisory ID: {advisory_id} | Event: {event_name}</p>
+    <pre>{content_en}</pre>
+    <p class="label">DEMO document — not for operational use.</p>
+    </body></html>"""
+    return HTML(string=html).write_pdf()
+
+
+def _build_plain_text(
+    advisory_id, ward_name, event_name, severity_tier, content_en, reviewed_by,
+) -> str:
+    sep = "=" * 60
+    return (
+        f"{sep}\n"
+        f"OFFICIAL DISASTER ADVISORY — {severity_tier.upper()}\n"
+        f"Ward: {ward_name} | Event: {event_name}\n"
+        f"Advisory ID: {advisory_id}\n"
+        f"Reviewed by: {reviewed_by}\n"
+        f"Issued: {datetime.now(timezone.utc).isoformat()}\n"
+        f"{sep}\n\n"
+        f"{content_en}\n\n"
+        f"{sep}\n"
+        f"DEMO — not for operational use.\n"
+    )
