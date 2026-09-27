@@ -32,6 +32,23 @@ This platform shifts cyclone disaster response **left** into the 24–120 hour p
 - Gemini API key (Google AI Studio or Vertex AI)
 - Twilio account (sandbox mode for demo)
 
+### Quick Run (Unified Script)
+
+To start both the FastAPI backend and React frontend concurrently with automatic port collision checking and graceful Ctrl+C shutdown:
+
+```bash
+./run.sh
+```
+
+Or to automatically stop existing instances on ports 8000/5173 and restart:
+```bash
+./run.sh --restart
+```
+
+---
+
+### Manual Step-by-Step Setup
+
 ### 1. Clone & configure
 
 ```bash

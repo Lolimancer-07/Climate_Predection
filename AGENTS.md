@@ -121,16 +121,22 @@ As specified in `phase2-enhancement-plan.md`:
 ## 6. How to Run the Project
 
 ```bash
-# 1. Run full test suite (48 tests passing)
+# 0. Quick Start (Run Backend + Frontend simultaneously)
+./run.sh
+
+# Or to auto-kill existing port conflicts:
+./run.sh --restart
+
+# 1. Run full test suite (73 tests passing)
 .venv/bin/pytest --cov=. --cov-report=term
 
 # 2. Run CLI End-to-End Simulation
 .venv/bin/python3 scripts/demo_run.py --cyclone FANI-2019 --district IN-OD-PURI
 
-# 3. Start Backend API Server (port 8000)
+# 3. Start Backend API Server manually (port 8000)
 .venv/bin/uvicorn backend.main:app --reload --port 8000
 
-# 4. Start Frontend Development Server (port 5173)
+# 4. Start Frontend Development Server manually (port 5173)
 cd frontend && npm run dev
 ```
 
@@ -140,6 +146,7 @@ cd frontend && npm run dev
 
 | Date (UTC/IST) | Agent Action / Milestone | Modified Files | Test Status | Notes |
 |---|---|---|---|---|
+| **2026-09-28 (Unified Startup Script)** | Added `run.sh` to launch both FastAPI backend (port 8000) and Vite frontend (port 5173) concurrently. Includes port collision checks, `--restart` auto-kill flags, virtualenv detection, and graceful Ctrl+C cleanup traps. Updated README.md and AGENTS.md. | `run.sh`, `README.md`, `AGENTS.md` | Tested: `./run.sh --help`, collision detection, syntax verified | Ready for one-command execution (`./run.sh`). |
 | **2026-09-28 (Phase 3 Full Implementation)** | Implemented complete Phase 3 from `phase3-realtime-futureproof-plan(1).md`: (1) Provider adapters and registries for data sources and models (`backend/registry/*`, `data-ingestion/providers/*`), (2) CLIPER-style extrapolation for track and intensity, plus uncertainty cone calculation (`modeling/track_forecast/*`), (3) Extraction of hardcoded calibration constants into `bay_of_bengal.yaml` basin configuration, (4) DB Schema updates for tracking active storms (`active_storms`, `storm_track_points`, `forecast_cones`, `threatened_districts`), (5) Frontend: New `LiveStormTracker` page with `StormTrackMap`, `RiskTimelineChart`, and `ProviderModeBadge`. | `backend/registry/*`, `backend/basin_config.py`, `backend/feature_flags.py`, `backend/db/models.py`, `backend/db/schema.sql`, `backend/routers/storms.py`, `backend/main.py`, `data-ingestion/providers/*`, `modeling/track_forecast/*`, `modeling/surge/parametric_surge.py`, `frontend/src/App.tsx`, `frontend/src/pages/LiveStormTracker.tsx`, `frontend/src/components/*` | **73/73 passed**; Frontend built successfully | Alembic schema generation verified but offline since no local DB container was running. React-router-dom dependency bypassed for internal routing. |
 | **2026-09-28 (Phase 2 Full Implementation)** | Implemented complete Phase 2 from `phase2-enhancement-plan.md`: (1) Structural/Mechanical Engineering module (wind_load, hydrodynamic_load, structural_check, fragility_curves, damage_state, hardening_priority), (2) AI Rapid Damage Assessment (image_pair_fetch, change_detection_prompt, validation_record), (3) Generalized Pipeline Router with BackgroundTasks + WebSocket, (4) Structural & DamageAssessment API routers, (5) Full frontend expansion: RoleGate, LiveUpdateBanner, TimelineScrubber, ScenarioSimulator, HardeningPriorityPage, DamageAssessmentPage, InsurerDashboard, HistoricalTrendsPage, useRiskWebSocket, useScenarioQuery, tokens.css, multi-role App.tsx navigation. | `modeling/structural_engineering/*` (7 files), `ai-reasoning/rapid_damage_assessment/*` (4 files), `backend/routers/pipeline.py`, `backend/routers/structural.py`, `backend/routers/damage_assessment.py`, `backend/main.py`, `frontend/src/theme/tokens.css`, `frontend/src/components/RoleGate.tsx`, `frontend/src/components/LiveUpdateBanner.tsx`, `frontend/src/components/TimelineScrubber.tsx`, `frontend/src/components/ScenarioSimulator.tsx`, `frontend/src/hooks/useRiskWebSocket.ts`, `frontend/src/hooks/useScenarioQuery.ts`, `frontend/src/pages/{HardeningPriorityPage,DamageAssessmentPage,InsurerDashboard,HistoricalTrendsPage}.tsx`, `frontend/src/App.tsx`, `frontend/src/index.css`, `frontend/package.json`, `tests/test_structural_engineering.py` | **73/73 passed** (+25 new Phase 2 tests); `tsc --noEmit` zero errors; `git push` to `origin/main` confirmed | recharts installed for historical trends charts. Structural fragility params tagged `generic_curve` (HAZUS analogs) per Phase 2 honesty requirement. All Phase 2 API endpoints live. |
 | **2026-09-28 (Phase 1 Finalization)** | Completed Phase 1 implementation plan: DB schema, Alembic migrations, frontend App switcher, Terraform, GitHub Actions, docs, Jupyter notebooks, demo runner fixes. | `backend/db/schema.sql`, `backend/alembic.ini`, `backend/db/migrations/*`, `frontend/src/App.tsx`, `frontend/tsconfig.json`, `infra/*`, `docs/*`, `notebooks/*`, `scripts/demo_run.py`, `data-ingestion/weather/rainfall_forecast.py` | 48/48 passed; Frontend build passed | All unit & integration tests pass with 0 errors. |
