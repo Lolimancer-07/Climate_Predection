@@ -1,0 +1,22 @@
+{
+  "storm_id": "BOB07-2026",
+  "generated_at": "2026-09-29T06:00:00Z",
+  "bbox": {"min_lat": 13.0, "max_lat": 22.0, "min_lon": 83.0, "max_lon": 90.0},
+  "grid": [
+    {"lat": 14.0, "lon": 88.0, "rainfall_mm_24h": 45,  "rainfall_mm_48h": 90,  "wind_speed_kmh": 55},
+    {"lat": 14.5, "lon": 87.5, "rainfall_mm_24h": 65,  "rainfall_mm_48h": 130, "wind_speed_kmh": 80},
+    {"lat": 15.0, "lon": 87.0, "rainfall_mm_24h": 90,  "rainfall_mm_48h": 180, "wind_speed_kmh": 110},
+    {"lat": 15.5, "lon": 86.5, "rainfall_mm_24h": 120, "rainfall_mm_48h": 240, "wind_speed_kmh": 140},
+    {"lat": 16.0, "lon": 86.0, "rainfall_mm_24h": 150, "rainfall_mm_48h": 300, "wind_speed_kmh": 175},
+    {"lat": 16.5, "lon": 85.5, "rainfall_mm_24h": 175, "rainfall_mm_48h": 350, "wind_speed_kmh": 200},
+    {"lat": 17.0, "lon": 85.0, "rainfall_mm_24h": 195, "rainfall_mm_48h": 390, "wind_speed_kmh": 215},
+    {"lat": 17.5, "lon": 84.7, "rainfall_mm_24h": 210, "rainfall_mm_48h": 420, "wind_speed_kmh": 220},
+    {"lat": 18.0, "lon": 84.5, "rainfall_mm_24h": 220, "rainfall_mm_48h": 440, "wind_speed_kmh": 215},
+    {"lat": 18.5, "lon": 84.3, "rainfall_mm_24h": 200, "rainfall_mm_48h": 400, "wind_speed_kmh": 200},
+    {"lat": 19.0, "lon": 84.2, "rainfall_mm_24h": 180, "rainfall_mm_48h": 360, "wind_speed_kmh": 190},
+    {"lat": 19.5, "lon": 84.1, "rainfall_mm_24h": 160, "rainfall_mm_48h": 320, "wind_speed_kmh": 180},
+    {"lat": 20.0, "lon": 84.2, "rainfall_mm_24h": 140, "rainfall_mm_48h": 280, "wind_speed_kmh": 160},
+    {"lat": 20.5, "lon": 84.4, "rainfall_mm_24h": 110, "rainfall_mm_48h": 220, "wind_speed_kmh": 130},
+    {"lat": 21.0, "lon": 84.6, "rainfall_mm_24h": 80,  "rainfall_mm_48h": 160, "wind_speed_kmh": 100}
+  ]
+}

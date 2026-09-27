@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 
 from backend.db.session import init_db
 from backend.routers import ingest, risk, advisory, insurance, assets
-from backend.routers import pipeline, structural, damage_assessment
+from backend.routers import pipeline, structural, damage_assessment, storms
 
 
 @asynccontextmanager
@@ -51,6 +51,9 @@ app.include_router(assets.router, prefix="/assets", tags=["Assets"])
 app.include_router(pipeline.router)          # /pipeline/run, /pipeline/status, /ws/risk
 app.include_router(structural.router)        # /structural/{district_id}
 app.include_router(damage_assessment.router) # /damage-assessment/{event_id}
+
+# Routers — Phase 3
+app.include_router(storms.router)            # /v1/storms/*
 
 
 @app.get("/health", tags=["Health"])

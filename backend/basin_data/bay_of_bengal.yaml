@@ -1,0 +1,42 @@
+basin_id: bay_of_bengal
+display_name: "Bay of Bengal"
+active_season_months: [4, 5, 6, 10, 11, 12]
+
+# CLIPER climatological heading — storms in BoB typically curve NW then NNE
+seasonal_climatology_heading_deg: 315
+
+# Forecast cone radii (km) by lead time hour
+# Calibrated from IMD post-season reports 2010–2023
+# Source: IMD Cyclone e-Atlas, RSMC New Delhi
+cone_radius_lookup_km:
+  24:  40
+  48:  90
+  72:  150
+  96:  220
+  120: 300
+
+# Parametric surge model calibration constants
+# Reference: ESSO-INCOIS regional surge calibration for BoB shelf
+# A: pressure-deficit coefficient, B: wind-speed coefficient, C: bathymetric amplifier
+surge_calibration:
+  A: 0.0042
+  B: 0.0008
+  C: 0.012
+  shelf_slope: 0.0005
+
+# Intensity model: SST-based intensification bounds
+# Values from Bay of Bengal climatological studies (Emanuel 2005, Roy & Kovordanyi 2012)
+intensity_model:
+  sst_intensification_threshold_c: 28.0
+  max_intensification_rate_kmh_per_day: 75.0
+  landfall_decay_rate_kmh_per_day: 80.0
+  max_wind_speed_kmh: 320.0
+
+# Advisory language packs (ISO 639-1)
+advisory_languages: [en, bn, or, my, te]
+
+# District boundary bbox (for dynamic district resolution)
+district_bbox_source: "data-ingestion/mock_data/district_boundaries.json"
+
+# Surge model reference
+surge_model_version: "parametric-v0.3"

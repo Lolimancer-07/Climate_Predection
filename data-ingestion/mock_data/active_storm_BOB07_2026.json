@@ -1,0 +1,40 @@
+{
+  "storm_id": "BOB07-2026",
+  "basin": "bay_of_bengal",
+  "status": "active_forecast",
+  "name": "MOCK-NILAM",
+  "genesis_time": "2026-09-28T00:00:00Z",
+  "observed_fixes": [
+    {
+      "timestamp": "2026-09-28T00:00:00Z",
+      "lat": 14.2,
+      "lon": 88.1,
+      "central_pressure_hpa": 1000,
+      "max_wind_kmh": 45,
+      "forward_speed_kt": 8,
+      "heading_deg": 310,
+      "category": "Depression"
+    },
+    {
+      "timestamp": "2026-09-28T12:00:00Z",
+      "lat": 14.9,
+      "lon": 87.3,
+      "central_pressure_hpa": 992,
+      "max_wind_kmh": 65,
+      "forward_speed_kt": 9,
+      "heading_deg": 315,
+      "category": "Deep Depression"
+    },
+    {
+      "timestamp": "2026-09-29T00:00:00Z",
+      "lat": 15.7,
+      "lon": 86.4,
+      "central_pressure_hpa": 978,
+      "max_wind_kmh": 95,
+      "forward_speed_kt": 10,
+      "heading_deg": 320,
+      "category": "Cyclonic Storm"
+    }
+  ],
+  "next_fix_release_interval_hours": 6
+}

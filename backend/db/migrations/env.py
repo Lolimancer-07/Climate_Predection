@@ -16,7 +16,8 @@ if str(BASE_DIR) not in sys.path:
 
 from backend.db.session import Base
 from backend.db import models  # noqa: F401
-from backend.config import settings
+from backend.config import get_settings
+settings = get_settings()
 
 # this is the Alembic Config object
 config = context.config
@@ -56,7 +57,7 @@ async def run_async_migrations() -> None:
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
-        url=settings.DATABASE_URL,
+        url=settings.async_database_url,
     )
 
     async with connectable.connect() as connection:

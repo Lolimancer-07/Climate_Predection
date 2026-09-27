@@ -16,11 +16,13 @@ from typing import Optional
 MODEL_VERSION = "parametric-surge-v0.3"
 
 # Calibration constants derived from Bay of Bengal historical events
-# See notebooks/02_surge_calibration.ipynb
-_A = 0.0042     # surge-pressure regression coefficient
-_B = 0.0008     # radius-of-max-wind contribution
-_C = 0.012      # forward-speed (storm motion) correction
+# Moved to backend/config/basins/bay_of_bengal.yaml in Phase 3
 _ENV_PRESSURE = 1013.0   # hPa
+
+def get_calibration_constants(basin_id="bay_of_bengal"):
+    from backend.basin_config import get_basin_config
+    config = get_basin_config(basin_id)
+    return config.get("surge_calibration", {"A": 0.0042, "B": 0.0008, "C": 0.012})
 
 
 @dataclass
@@ -59,11 +61,12 @@ def estimate_surge_height(inp: SurgeInput) -> float:
     Calibrated against Bay of Bengal post-event survey reports.
     Returns peak surge height in metres.
     """
+    cal = get_calibration_constants() # Default to bay_of_bengal for now
     pressure_deficit = _ENV_PRESSURE - inp.central_pressure_hpa
     h_base = (
-        _A * pressure_deficit
-        + _B * inp.radius_max_wind_nm
-        + _C * inp.forward_speed_kt
+        cal["A"] * pressure_deficit
+        + cal["B"] * inp.radius_max_wind_nm
+        + cal["C"] * inp.forward_speed_kt
     )
     saf = _shelf_amplification(inp.shelf_slope_deg)
     h = h_base * saf
@@ -151,7 +154,7 @@ def _surge_severity_class(h: float) -> str:
         return "Severe"
 
 
-def run_surge_model(inp: SurgeInput) -> SurgeResult:
+def run_parametric_surge_model(inp: SurgeInput) -> SurgeResult:
     """Full pipeline: compute surge height, inundation polygon, return SurgeResult."""
     h = estimate_surge_height(inp)
     saf = _shelf_amplification(inp.shelf_slope_deg)
@@ -189,4 +192,4 @@ def fani_demo_surge() -> SurgeResult:
         district_id="IN-OD-PURI",
         event_id="CYCLONE-FANI-2019",
     )
-    return run_surge_model(inp)
+    return run_parametric_surge_model(inp)

@@ -179,3 +179,49 @@ CREATE TABLE IF NOT EXISTS dispatch_log (
 
 CREATE INDEX IF NOT EXISTS idx_dispatch_log_advisory ON dispatch_log (advisory_id);
 CREATE INDEX IF NOT EXISTS idx_dispatch_log_channel ON dispatch_log (channel);
+
+-- ── 10. Phase 3: Real-Time Prediction Models ─────────────────────────────────
+CREATE TABLE IF NOT EXISTS active_storms (
+    storm_id            TEXT PRIMARY KEY,
+    basin_id            TEXT,
+    name                TEXT,
+    status              TEXT,             -- active_forecast | dissipated | post_landfall
+    provider_source      TEXT,             -- mock | imd | jtwc | gdacs
+    genesis_time         TIMESTAMPTZ,
+    last_updated         TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS storm_track_points (
+    point_id             TEXT PRIMARY KEY,
+    storm_id             TEXT REFERENCES active_storms(storm_id) ON DELETE CASCADE,
+    point_type           TEXT,             -- observed | forecast
+    lead_hours           INTEGER,          -- null for observed points
+    timestamp             TIMESTAMPTZ,
+    lat                   NUMERIC,
+    lon                   NUMERIC,
+    central_pressure_hpa  NUMERIC,
+    max_wind_kmh          NUMERIC,
+    category              TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_storm_track_points_storm ON storm_track_points (storm_id);
+
+CREATE TABLE IF NOT EXISTS forecast_cones (
+    cone_id              TEXT PRIMARY KEY,
+    storm_id             TEXT REFERENCES active_storms(storm_id) ON DELETE CASCADE,
+    generated_at          TIMESTAMPTZ,
+    geom                  GEOMETRY(MultiPolygon, 4326)
+);
+
+CREATE INDEX IF NOT EXISTS idx_forecast_cones_storm ON forecast_cones (storm_id);
+CREATE INDEX IF NOT EXISTS idx_forecast_cones_geom ON forecast_cones USING GIST (geom);
+
+CREATE TABLE IF NOT EXISTS threatened_districts (
+    id                   TEXT PRIMARY KEY,
+    storm_id             TEXT REFERENCES active_storms(storm_id) ON DELETE CASCADE,
+    district_id          TEXT REFERENCES districts(district_id) ON DELETE CASCADE,
+    earliest_impact_hour  INTEGER,
+    computed_at            TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_threatened_districts_storm ON threatened_districts (storm_id);

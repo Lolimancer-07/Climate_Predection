@@ -1,0 +1,28 @@
+basin_id: _template
+display_name: "New Basin Name"
+active_season_months: []   # e.g. [6, 7, 8, 9, 10, 11] for western Pacific
+
+seasonal_climatology_heading_deg: 0   # dominant steering direction
+
+cone_radius_lookup_km:
+  24:  50
+  48:  100
+  72:  160
+  96:  230
+  120: 310
+
+surge_calibration:
+  A: 0.004
+  B: 0.0007
+  C: 0.010
+  shelf_slope: 0.0004
+
+intensity_model:
+  sst_intensification_threshold_c: 27.5
+  max_intensification_rate_kmh_per_day: 65.0
+  landfall_decay_rate_kmh_per_day: 70.0
+  max_wind_speed_kmh: 340.0
+
+advisory_languages: [en]
+district_bbox_source: ""
+surge_model_version: "parametric-v0.3"

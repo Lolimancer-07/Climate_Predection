@@ -7,11 +7,13 @@ import { InsurerDashboard } from './pages/InsurerDashboard'
 import { HistoricalTrendsPage } from './pages/HistoricalTrendsPage'
 import { RoleProvider, useRole, UserRole } from './components/RoleGate'
 import { LiveUpdateBanner } from './components/LiveUpdateBanner'
+import { LiveStormTracker } from './pages/LiveStormTracker'
 
-type Page = 'dashboard' | 'admin' | 'hardening' | 'damage' | 'insurer' | 'trends'
+type Page = 'live_tracker' | 'dashboard' | 'admin' | 'hardening' | 'damage' | 'insurer' | 'trends'
 
 const NAV_ITEMS: Array<{ id: Page; label: string; icon: string; roles: UserRole[] }> = [
-  { id: 'dashboard',  label: 'Operational Dashboard', icon: '🗺️', roles: ['ddma_operator', 'admin'] },
+  { id: 'live_tracker', label: 'Live Storm Tracker',  icon: '🌀', roles: ['ddma_operator', 'admin', 'insurer_viewer', 'public'] },
+  { id: 'dashboard',  label: 'Historical Replay',     icon: '🗺️', roles: ['ddma_operator', 'admin'] },
   { id: 'hardening',  label: 'Hardening Priority',    icon: '🛡️', roles: ['ddma_operator', 'admin'] },
   { id: 'damage',     label: 'Damage Assessment',     icon: '📡', roles: ['ddma_operator', 'admin'] },
   { id: 'trends',     label: 'Historical Trends',     icon: '📈', roles: ['ddma_operator', 'admin', 'insurer_viewer'] },
@@ -22,23 +24,24 @@ const NAV_ITEMS: Array<{ id: Page; label: string; icon: string; roles: UserRole[
 const ROLE_OPTIONS: UserRole[] = ['ddma_operator', 'insurer_viewer', 'admin', 'public']
 
 function AppContent() {
-  const [activePage, setActivePage] = useState<Page>('dashboard')
+  const [activePage, setActivePage] = useState<Page>('live_tracker')
   const { role, setRole } = useRole()
 
   const visibleNav = NAV_ITEMS.filter((n) => n.roles.includes(role))
 
   // If current page becomes inaccessible after role switch, go to first visible
-  const safeActivePage = visibleNav.find((n) => n.id === activePage) ? activePage : visibleNav[0]?.id ?? 'dashboard'
+  const safeActivePage = visibleNav.find((n) => n.id === activePage) ? activePage : visibleNav[0]?.id ?? 'live_tracker'
 
   const renderPage = () => {
     switch (safeActivePage) {
+      case 'live_tracker': return <LiveStormTracker onNavigateToDashboard={() => setActivePage('dashboard')} />
       case 'dashboard':  return <Dashboard />
       case 'admin':      return <AdminPanel />
       case 'hardening':  return <HardeningPriorityPage />
       case 'damage':     return <DamageAssessmentPage />
       case 'insurer':    return <InsurerDashboard />
       case 'trends':     return <HistoricalTrendsPage />
-      default:           return <Dashboard />
+      default:           return <LiveStormTracker onNavigateToDashboard={() => setActivePage('dashboard')} />
     }
   }
 

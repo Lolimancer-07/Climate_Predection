@@ -122,3 +122,50 @@ class DispatchLog(Base):
     recipient = Column(String, nullable=True)
     status = Column(String, nullable=True)
     dispatched_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+
+# ── Phase 3: Real-Time Prediction Models ──────────────────────────────────────
+
+class ActiveStorm(Base):
+    __tablename__ = "active_storms"
+
+    storm_id = Column(String, primary_key=True)
+    basin_id = Column(String, nullable=True)
+    name = Column(String, nullable=True)
+    status = Column(String, nullable=True)             # active_forecast | dissipated | post_landfall
+    provider_source = Column(String, nullable=True)    # mock | imd | jtwc | gdacs
+    genesis_time = Column(TIMESTAMP(timezone=True), nullable=True)
+    last_updated = Column(TIMESTAMP(timezone=True), nullable=True)
+
+
+class StormTrackPoint(Base):
+    __tablename__ = "storm_track_points"
+
+    point_id = Column(String, primary_key=True, default=_uuid)
+    storm_id = Column(String, ForeignKey("active_storms.storm_id"), nullable=False)
+    point_type = Column(String, nullable=True)         # observed | forecast
+    lead_hours = Column(Integer, nullable=True)
+    timestamp = Column(TIMESTAMP(timezone=True), nullable=True)
+    lat = Column(Numeric, nullable=True)
+    lon = Column(Numeric, nullable=True)
+    central_pressure_hpa = Column(Numeric, nullable=True)
+    max_wind_kmh = Column(Numeric, nullable=True)
+    category = Column(String, nullable=True)
+
+
+class ForecastCone(Base):
+    __tablename__ = "forecast_cones"
+
+    cone_id = Column(String, primary_key=True, default=_uuid)
+    storm_id = Column(String, ForeignKey("active_storms.storm_id"), nullable=False)
+    generated_at = Column(TIMESTAMP(timezone=True), nullable=True)
+    geom = Column(Geometry("MULTIPOLYGON", srid=4326), nullable=True)
+
+
+class ThreatenedDistrict(Base):
+    __tablename__ = "threatened_districts"
+
+    id = Column(String, primary_key=True, default=_uuid)
+    storm_id = Column(String, ForeignKey("active_storms.storm_id"), nullable=False)
+    district_id = Column(String, ForeignKey("districts.district_id"), nullable=False)
+    earliest_impact_hour = Column(Integer, nullable=True)
+    computed_at = Column(TIMESTAMP(timezone=True), server_default=func.now())

@@ -4,7 +4,7 @@ Unit tests for the parametric surge model.
 """
 import pytest
 from modeling.surge.parametric_surge import (
-    SurgeInput, run_surge_model, estimate_surge_height,
+    SurgeInput, run_parametric_surge_model, estimate_surge_height,
     _shelf_amplification, estimate_inundation_radius, fani_demo_surge,
 )
 
