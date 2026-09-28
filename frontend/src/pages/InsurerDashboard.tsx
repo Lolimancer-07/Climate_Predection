@@ -89,9 +89,26 @@ function InsurerContent() {
         )}
       </div>
 
+      {/* Disclaimer Banner */}
+      <div style={{
+        background: 'rgba(168, 85, 247, 0.1)',
+        border: '1px solid rgba(168, 85, 247, 0.3)',
+        borderRadius: 'var(--radius-md)',
+        padding: '12px 16px',
+        marginBottom: 'var(--space-6)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 12,
+      }}>
+        <ShieldCheck size={20} style={{ color: '#c084fc', flexShrink: 0, marginTop: 2 }} />
+        <div style={{ fontSize: '0.8rem', color: '#e9d5ff', lineHeight: 1.5 }}>
+          <strong style={{ color: '#ffffff' }}>PARAMETRIC TRIGGER ARTIFACT — NOT AN EXECUTED PAYMENT:</strong> This platform computes deterministic numerical threshold proofs and cryptographically signed (HMAC-SHA256) trigger payloads for authorized underwriter and government review. No banking rails or automated funds transfers are executed by this platform.
+        </div>
+      </div>
+
       {/* Metrics */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
-        <MetricCard label="Payout Amount" value={`$${(DEMO_TRIGGER.payout_usd / 1e6).toFixed(2)}M`} color="var(--color-success)" icon={<DollarSign size={13} />} />
+        <MetricCard label="Policy Entitlement" value={`$${(DEMO_TRIGGER.payout_usd / 1e6).toFixed(2)}M`} sub="Subject to human underwriter review" color="var(--color-success)" icon={<DollarSign size={13} />} />
         <MetricCard label="Surge Trigger" value={`${DEMO_TRIGGER.surge_height_m} m`} sub="Threshold: 3.0m" color="var(--color-primary)" icon={<ShieldCheck size={13} />} />
         <MetricCard label="Wind Speed" value={`${DEMO_TRIGGER.wind_speed_kmh} km/h`} color="var(--color-warning)" icon={<Clock size={13} />} />
         <MetricCard label="Rainfall 72h" value={`${DEMO_TRIGGER.rainfall_72h_mm} mm`} color="var(--color-primary)" icon={<Clock size={13} />} />

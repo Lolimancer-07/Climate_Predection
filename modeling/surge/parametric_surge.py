@@ -178,7 +178,12 @@ def run_parametric_surge_model(inp: SurgeInput) -> SurgeResult:
     )
 
 
+# Alias for backwards compatibility with demo scripts
+run_surge_model = run_parametric_surge_model
+
+
 # ── Demo convenience ─────────────────────────────────────────────────────────
+
 
 def fani_demo_surge() -> SurgeResult:
     """Return pre-computed surge result for Cyclone Fani 2019 Puri demo."""

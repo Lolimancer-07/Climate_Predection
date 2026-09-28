@@ -1,0 +1,12 @@
+{
+  "name": "cyclone-anticipatory-action-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cyclone Anticipatory Action Platform root runner",
+  "scripts": {
+    "build": "npm --prefix frontend run build",
+    "dev": "npm --prefix frontend run dev",
+    "preview": "npm --prefix frontend run preview",
+    "lint": "npm --prefix frontend run lint"
+  }
+}

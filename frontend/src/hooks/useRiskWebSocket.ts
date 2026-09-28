@@ -34,53 +34,69 @@ export function useRiskWebSocket({
     'connecting' | 'connected' | 'disconnected' | 'error'
   >('disconnected');
 
-  const connect = useCallback(() => {
-    if (!enabled || !districtId) return;
+  useEffect(() => {
+    let unmounted = false;
+    let retryCount = 0;
 
-    const url = `${WS_BASE}/pipeline/ws/risk/${encodeURIComponent(districtId)}`;
-    setConnectionStatus('connecting');
+    const connect = () => {
+      if (unmounted || !enabled || !districtId) return;
 
-    const ws = new WebSocket(url);
-    wsRef.current = ws;
+      const url = `${WS_BASE}/pipeline/ws/risk/${encodeURIComponent(districtId)}`;
+      setConnectionStatus('connecting');
 
-    ws.onopen = () => {
-      setConnectionStatus('connected');
+      const ws = new WebSocket(url);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        if (unmounted) {
+          ws.close();
+          return;
+        }
+        retryCount = 0;
+        setConnectionStatus('connected');
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg: WsMessage = JSON.parse(event.data);
+          onMessage?.(msg);
+
+          // On risk update, invalidate relevant query cache
+          if (msg.type === 'risk_update') {
+            queryClient.invalidateQueries({ queryKey: ['risk', districtId] });
+            queryClient.invalidateQueries({ queryKey: ['structural', districtId] });
+          }
+        } catch {
+          // Ignore malformed messages
+        }
+      };
+
+      ws.onerror = () => {
+        if (!unmounted) setConnectionStatus('error');
+      };
+
+      ws.onclose = () => {
+        if (unmounted) return;
+        setConnectionStatus('disconnected');
+        wsRef.current = null;
+        // Exponential backoff: 3s -> 4.5s -> 6.75s ... max 30s
+        const delay = Math.min(30_000, 3_000 * Math.pow(1.5, retryCount));
+        retryCount += 1;
+        reconnectTimer.current = setTimeout(connect, delay);
+      };
     };
 
-    ws.onmessage = (event) => {
-      try {
-        const msg: WsMessage = JSON.parse(event.data);
-        onMessage?.(msg);
+    connect();
 
-        // On risk update, invalidate relevant query cache
-        if (msg.type === 'risk_update') {
-          queryClient.invalidateQueries({ queryKey: ['risk', districtId] });
-          queryClient.invalidateQueries({ queryKey: ['structural', districtId] });
-        }
-      } catch {
-        // Ignore malformed messages
+    return () => {
+      unmounted = true;
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
       }
     };
-
-    ws.onerror = () => {
-      setConnectionStatus('error');
-    };
-
-    ws.onclose = () => {
-      setConnectionStatus('disconnected');
-      wsRef.current = null;
-      // Reconnect after 5s
-      reconnectTimer.current = setTimeout(connect, 5_000);
-    };
   }, [districtId, enabled, onMessage, queryClient]);
-
-  useEffect(() => {
-    connect();
-    return () => {
-      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
-      wsRef.current?.close();
-    };
-  }, [connect]);
 
   const sendPing = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
