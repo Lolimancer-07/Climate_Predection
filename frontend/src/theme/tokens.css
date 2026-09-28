@@ -94,3 +94,102 @@
   --transition-base: 200ms ease;
   --transition-slow: 350ms ease;
 }
+
+/* ── UAV GCS Themes ────────────────────────────────────────────────── */
+:root[data-theme="ice"] {
+  --bg-base:             #081016;
+  --bg-surface:          #0c1820;
+  --bg-elevated:         #10232d;
+  --bg-overlay:          #122a35;
+  --bg-input:            #142f3c;
+  --border-subtle:       #1e3d48;
+  --border-default:      #28505d;
+  --border-strong:       #3c7385;
+  --color-primary:       #8dd8f5;
+  --color-accent:        #8dd8f5;
+  --text-primary:        #ffffff;
+  --text-secondary:      #a2c4d2;
+  --text-muted:          #688a99;
+}
+
+:root[data-theme="emerald"] {
+  --bg-base:             #07100d;
+  --bg-surface:          #0a1712;
+  --bg-elevated:         #0d1e17;
+  --bg-overlay:          #10251b;
+  --bg-input:            #132d21;
+  --border-subtle:       #1b402e;
+  --border-default:      #27523b;
+  --border-strong:       #377855;
+  --color-primary:       #65e6a2;
+  --color-accent:        #65e6a2;
+  --text-primary:        #ffffff;
+  --text-secondary:      #9cd8b7;
+  --text-muted:          #599673;
+}
+
+:root[data-theme="amber"] {
+  --bg-base:             #110d08;
+  --bg-surface:          #1a130b;
+  --bg-elevated:         #21180d;
+  --bg-overlay:          #271d10;
+  --bg-input:            #302414;
+  --border-subtle:       #4a3518;
+  --border-default:      #60451f;
+  --border-strong:       #85612c;
+  --color-primary:       #f0b75a;
+  --color-accent:        #f0b75a;
+  --text-primary:        #ffffff;
+  --text-secondary:      #dfc59e;
+  --text-muted:          #997d54;
+}
+
+/* ── Keyframe Animations ───────────────────────────────────────────── */
+@keyframes pageFade {
+  from { opacity: 0.88; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tabFadeIn {
+  from { opacity: 0.85; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes radarSweep {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 6px currentColor); }
+  50% { opacity: 0.6; filter: drop-shadow(0 0 2px currentColor); }
+}
+
+.animate-page-fade {
+  animation: pageFade 200ms ease-out both;
+}
+
+.animate-tab-content {
+  animation: tabFadeIn 160ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Precision Aerospace Scrollbars ────────────────────────────────── */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 9999px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+

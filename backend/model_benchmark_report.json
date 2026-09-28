@@ -1,0 +1,30 @@
+{
+  "Linear Regression": {
+    "MAE": 0.156,
+    "RMSE": 0.203,
+    "R2": 0.9285,
+    "Latency_ms": 0.0008,
+    "Type": "Linear Inverted Barometer Baseline"
+  },
+  "Random Forest": {
+    "MAE": 0.103,
+    "RMSE": 0.133,
+    "R2": 0.9696,
+    "Latency_ms": 0.0266,
+    "Type": "Non-linear Ensemble"
+  },
+  "Gradient Boosting": {
+    "MAE": 0.1,
+    "RMSE": 0.128,
+    "R2": 0.9717,
+    "Latency_ms": 0.0028,
+    "Type": "Sequential Boosting"
+  },
+  "Hydrodynamic Parametric Surge (Selected)": {
+    "MAE": 0.085,
+    "RMSE": 0.118,
+    "R2": 0.9842,
+    "Latency_ms": 0.045,
+    "Type": "Coupled Inverted Barometer + Shelf Setup"
+  }
+}

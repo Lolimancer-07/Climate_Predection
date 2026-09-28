@@ -129,12 +129,49 @@ async def get_threatened_districts(storm_id: str, db: AsyncSession = Depends(get
     }
 
 
+@router.post("/{storm_id}/runs")
 @router.post("/{storm_id}/run-live-pipeline")
 async def run_live_pipeline(
-    storm_id: str, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)
+    storm_id: str, background_tasks: BackgroundTasks, district_id: str = "IN-OD-PURI", db: AsyncSession = Depends(get_db)
 ):
     """Queue a full pipeline run for all threatened districts."""
-    return {"status": "started", "job_id": "mock-job-id", "schema_version": "v1.0"}
+    import uuid
+    import time
+    from backend.routers.pipeline import _run_pipeline_sync, _jobs
+
+    job_id = str(uuid.uuid4())
+    now = time.time()
+    _jobs[job_id] = {
+        "job_id": job_id,
+        "district_id": district_id,
+        "event_id": storm_id,
+        "status": "queued",
+        "stage": "queued",
+        "started_at": now,
+        "elapsed_s": 0.0,
+        "result_summary": None,
+        "error": None,
+    }
+
+    background_tasks.add_task(_run_pipeline_sync, job_id, district_id, storm_id)
+
+    return {
+        "status": "queued",
+        "job_id": job_id,
+        "storm_id": storm_id,
+        "district_id": district_id,
+        "schema_version": "v1.0",
+    }
+
+
+@router.get("/runs/{run_id}")
+async def get_run_status(run_id: str):
+    """Fetch status and output of a pipeline run."""
+    from backend.routers.pipeline import _jobs
+    job = _jobs.get(run_id)
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Pipeline run '{run_id}' not found")
+    return job
 
 
 @router.get("/{storm_id}/risk-timeline")
@@ -159,9 +196,70 @@ async def storm_websocket(websocket: WebSocket, storm_id: str):
     if storm_id not in storm_clients:
         storm_clients[storm_id] = []
     storm_clients[storm_id].append(websocket)
+
+    from backend.inference import (
+        generate_baseline_telemetry,
+        process_telemetry_packet,
+        process_gcs_command,
+        latest_state,
+        demo_controller,
+        fleet_manager,
+    )
+    from backend.cyclone_nexus_ai import answer_copilot_query
+
+    # Background task to send full digital twin telemetry ticks
+    async def telemetry_tick_loop():
+        cycle = latest_state.get("cycle", 1)
+        try:
+            while True:
+                packet = generate_baseline_telemetry(
+                    cycle=cycle,
+                    mode=latest_state.get("mission_mode", "NORMAL"),
+                    injected_faults=latest_state.get("active_faults", [])
+                )
+                packet["storm_name"] = storm_id
+                process_telemetry_packet(packet)
+
+                # Send combined payload
+                tick_payload = dict(latest_state)
+                tick_payload["type"] = "telemetry_tick"
+                tick_payload["storm_id"] = storm_id
+                tick_payload["timestamp"] = datetime.now(timezone.utc).isoformat()
+
+                await websocket.send_json(tick_payload)
+                cycle += 1
+                await asyncio.sleep(1.0)
+        except Exception:
+            pass
+
+    tick_task = asyncio.create_task(telemetry_tick_loop())
+
     try:
         while True:
-            await websocket.receive_text()
+            text = await websocket.receive_text()
+            try:
+                msg = json.loads(text)
+                cmd = msg.get("command") or msg.get("action")
+
+                if cmd == "ai_engineer_query":
+                    q = msg.get("question", "")
+                    ans = answer_copilot_query(q, latest_state)
+                    await websocket.send_json({"type": "ai_engineer_response", "ai_engineer_response": ans})
+                else:
+                    process_gcs_command(msg)
+                    resp = dict(latest_state)
+                    resp["type"] = "command_ack"
+                    resp["command"] = cmd
+                    await websocket.send_json(resp)
+            except json.JSONDecodeError:
+                pass
     except WebSocketDisconnect:
+        tick_task.cancel()
         if websocket in storm_clients.get(storm_id, []):
             storm_clients[storm_id].remove(websocket)
+    except Exception:
+        tick_task.cancel()
+        if websocket in storm_clients.get(storm_id, []):
+            storm_clients[storm_id].remove(websocket)
+
+

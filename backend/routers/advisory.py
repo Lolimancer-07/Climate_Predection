@@ -163,3 +163,20 @@ async def get_advisory(advisory_id: str):
     if advisory_id not in _advisory_store:
         raise HTTPException(status_code=404, detail="Advisory not found.")
     return AdvisoryOut(**_advisory_store[advisory_id])
+
+
+class CopilotQueryRequest(BaseModel):
+    question: str
+    state: Optional[dict] = None
+
+
+@router.post("/copilot-query")
+async def copilot_query_endpoint(req: CopilotQueryRequest):
+    """
+    Cyclone Nexus AI Copilot query endpoint.
+    Answers operator questions grounded in live telemetry, surge models,
+    and physical digital twin state.
+    """
+    from backend.cyclone_nexus_ai import answer_copilot_query
+    return answer_copilot_query(req.question, req.state)
+
