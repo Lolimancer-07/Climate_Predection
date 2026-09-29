@@ -5,6 +5,14 @@
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 
+# Parse flags
+RESTART=false
+for arg in "$@"; do
+  case "$arg" in
+    --restart) RESTART=true ;;
+  esac
+done
+
 # Resolve python interpreter portably
 find_python() {
     # 1. Local repository virtual environment takes priority
@@ -71,14 +79,25 @@ echo -e "${BOLD}║   CYCLONE DIGITAL TWIN — SYSTEM LAUNCHER     ║${NC}"
 echo -e "${BOLD}╚══════════════════════════════════════════════╝${NC}"
 echo ""
 
-# Auto-kill any leftover processes from previous runs for an immediate clean start
-pkill -9 -f "backend/inference.py" 2>/dev/null || true
-pkill -9 -f "uvicorn.*backend.main:app" 2>/dev/null || true
-pkill -9 -f "vite" 2>/dev/null || true
-fuser -k 8000/tcp 2>/dev/null || true
-fuser -k 5173/tcp 2>/dev/null || true
-fuser -k 8765/tcp 2>/dev/null || true
-sleep 0.5
+# Kill leftover processes only when --restart is explicitly passed
+if [ "$RESTART" = true ]; then
+  echo "  [--restart] Stopping any existing services..."
+  pkill -9 -f "backend/inference.py" 2>/dev/null || true
+  pkill -9 -f "uvicorn.*backend.main:app" 2>/dev/null || true
+  pkill -9 -f "vite" 2>/dev/null || true
+  fuser -k 8000/tcp 2>/dev/null || true
+  fuser -k 5173/tcp 2>/dev/null || true
+  fuser -k 8765/tcp 2>/dev/null || true
+  sleep 0.5
+else
+  # Not restarting — just free any *stale* ports not owned by known services.
+  # This avoids killing healthy processes from a prior run.
+  for port in 8000 5173 8765; do
+    if ss -tlnp 2>/dev/null | grep -q ":${port}"; then
+      : # port already in use by a running service — we will skip that stage below
+    fi
+  done
+fi
 
 # Reset simulator control state so a stale 'paused: true' or leftover faults don't freeze the simulation
 mkdir -p "$ROOT/simulator"
@@ -128,37 +147,47 @@ fi
 
 # Step 2: launch the Digital Twin AI Inference Engine on port 8765
 hdr "2/4" "Digital Twin AI Inference Engine (WebSocket :8765)"
-echo "  → Launching backend/inference.py..."
-cd "$ROOT"
-$PYTHON -u "$ROOT/backend/inference.py" > /tmp/cyclone_inference.log 2>&1 &
-INFERENCE_PID=$!
+if ss -tlnp 2>/dev/null | grep -q ':8765'; then
+    ok "Inference Engine already running on :8765 — skipping launch"
+    INFERENCE_PID=$(lsof -ti :8765 2>/dev/null | head -1 || echo 0)
+else
+    echo "  → Launching backend/inference.py..."
+    cd "$ROOT"
+    $PYTHON -u "$ROOT/backend/inference.py" > /tmp/cyclone_inference.log 2>&1 &
+    INFERENCE_PID=$!
 
-# Wait up to 10 seconds for WebSocket port 8765 to open
-echo "  → Waiting for inference engine startup..."
-for i in $(seq 1 10); do
-    sleep 1
-    if kill -0 $INFERENCE_PID 2>/dev/null; then
-        if ss -tlnp 2>/dev/null | grep -q ':8765' || \
-           netstat -tlnp 2>/dev/null | grep -q ':8765' || \
-           lsof -ti :8765 >/dev/null 2>&1; then
-            ok "Digital Twin Inference Engine live (PID $INFERENCE_PID) → ws://127.0.0.1:8765"
+    # Wait up to 10 seconds for WebSocket port 8765 to open
+    echo "  → Waiting for inference engine startup..."
+    for i in $(seq 1 10); do
+        sleep 1
+        if kill -0 $INFERENCE_PID 2>/dev/null; then
+            if ss -tlnp 2>/dev/null | grep -q ':8765' || \
+               netstat -tlnp 2>/dev/null | grep -q ':8765' || \
+               lsof -ti :8765 >/dev/null 2>&1; then
+                ok "Digital Twin Inference Engine live (PID $INFERENCE_PID) → ws://127.0.0.1:8765"
+                break
+            fi
+        else
+            warn "Inference engine background process exited. Check /tmp/cyclone_inference.log"
             break
         fi
-    else
-        warn "Inference engine background process exited. Check /tmp/cyclone_inference.log"
-        break
-    fi
-    if [ $i -eq 10 ]; then
-        ok "Inference engine initialized (PID $INFERENCE_PID)"
-    fi
-done
+        if [ $i -eq 10 ]; then
+            ok "Inference engine initialized (PID $INFERENCE_PID)"
+        fi
+    done
+fi
 
 # Step 3: launch FastAPI Application Server on port 8000
 hdr "3/4" "FastAPI Application Server (REST + WebSocket :8000)"
-echo "  → Starting FastAPI backend..."
-UVICORN_CMD="$PYTHON -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload"
-$UVICORN_CMD > /tmp/cyclone_backend.log 2>&1 &
-BACKEND_PID=$!
+if ss -tlnp 2>/dev/null | grep -q ':8000'; then
+    ok "FastAPI Backend already running on :8000 — skipping launch"
+    BACKEND_PID=$(lsof -ti :8000 2>/dev/null | head -1 || echo 0)
+else
+    echo "  → Starting FastAPI backend..."
+    UVICORN_CMD="$PYTHON -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload"
+    $UVICORN_CMD > /tmp/cyclone_backend.log 2>&1 &
+    BACKEND_PID=$!
+fi
 
 # Wait up to 10 seconds for port 8000
 for i in $(seq 1 10); do
@@ -177,16 +206,21 @@ done
 
 # Step 4: launch the Vite React GCS Operator Console on port 5173
 hdr "4/4" "GCS Operator Console (Vite React :5173)"
-echo "  → Starting React GCS dashboard..."
-if [ ! -d "$ROOT/frontend/node_modules" ]; then
-    echo "  → Installing frontend pnpm dependencies..."
-    (cd "$ROOT/frontend" && pnpm install) || fail "pnpm install failed"
-fi
+if ss -tlnp 2>/dev/null | grep -q ':5173'; then
+    ok "GCS Operator Console already running on :5173 — skipping launch"
+    FRONTEND_PID=$(lsof -ti :5173 2>/dev/null | head -1 || echo 0)
+else
+    echo "  → Starting React GCS dashboard..."
+    if [ ! -d "$ROOT/frontend/node_modules" ]; then
+        echo "  → Installing frontend pnpm dependencies..."
+        (cd "$ROOT/frontend" && pnpm install) || fail "pnpm install failed"
+    fi
 
-cd "$ROOT/frontend"
-pnpm run dev > /tmp/cyclone_frontend.log 2>&1 &
-FRONTEND_PID=$!
-cd "$ROOT"
+    cd "$ROOT/frontend"
+    pnpm run dev > /tmp/cyclone_frontend.log 2>&1 &
+    FRONTEND_PID=$!
+    cd "$ROOT"
+fi
 
 for i in $(seq 1 12); do
     sleep 1
