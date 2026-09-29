@@ -26,6 +26,8 @@ import {
   Zap,
 } from 'lucide-react';
 
+import { toast } from 'sonner';
+
 const STAGE_OPTIONS = [
   { value: 'T-72h', label: 'T-72h (Early Approach / Watch)', leadTime: 72 },
   { value: 'T-48h', label: 'T-48h (Inundation Threat / Alert)', leadTime: 48 },
@@ -66,17 +68,27 @@ export function CommandDock() {
   const handleStageChange = (val: string) => {
     setSelectedStage(val);
     const opt = STAGE_OPTIONS.find((s) => s.value === val);
-    if (opt) setSimLeadTime(opt.leadTime);
+    if (opt) {
+      setSimLeadTime(opt.leadTime);
+      toast.info(`Lead-Time Scrubbed to ${opt.value}`, { description: opt.label });
+    }
   };
 
   const handleInjectFault = () => {
     setJustCleared(false);
     setActiveScenario(selectedFault);
+    const faultMeta = SCENARIO_FAULTS.find((f) => f.value === selectedFault);
+    toast.error(`Perturbation Injected: ${selectedFault.toUpperCase().replace(/_/g, ' ')}`, {
+      description: faultMeta?.label || 'Hazard envelope thresholds tripped; digital twin recalculating.'
+    });
   };
 
   const handleClearFaults = () => {
     setActiveScenario(null);
     setJustCleared(true);
+    toast.success('All Injected Faults Cleared', {
+      description: 'Sensors and hydrodynamic models restored to nominal baseline.'
+    });
     setTimeout(() => setJustCleared(false), 2000);
   };
 
@@ -88,12 +100,18 @@ export function CommandDock() {
       description: 'Cyclone BOB07 detected 480 km SSE of Puri. Parametric monitoring active.',
     });
     setSimLeadTime(72);
+    toast.info('Scripted Demo Started: Step 1/9', {
+      description: 'Baseline Approach (T-72h): Parametric monitoring active across Bay of Bengal.'
+    });
   };
 
   const handleNextDemoStep = () => {
     const next = demoState.step + 1;
     if (next > 9) {
       setDemoState((prev) => ({ ...prev, active: false }));
+      toast.success('Scripted Demo Sequence Completed', {
+        description: 'All 9 physical, AI reasoning, and insurance trigger phases verified.'
+      });
       return;
     }
     const stepTitles = [
@@ -108,17 +126,22 @@ export function CommandDock() {
       'Human-in-the-Loop Multi-Channel Dispatch',
       'Landfall & Rapid Damage Assessment Verification',
     ];
+    const title = stepTitles[next] || `Demo Step ${next}`;
     setDemoState({
       active: true,
       step: next,
-      title: stepTitles[next] || `Demo Step ${next}`,
+      title,
       description: `Step ${next}/9 executing across physical hazard & financial liquidity models.`,
     });
     setSimLeadTime(Math.max(0, 72 - next * 8));
+    toast.info(`Demo Advance: Step ${next}/9 — ${title}`, {
+      description: `Advancing lead-time to T-${Math.max(0, 72 - next * 8)}h.`
+    });
   };
 
   const handleStopDemo = () => {
     setDemoState((prev) => ({ ...prev, active: false }));
+    toast('Demo Sequence Stopped');
   };
 
   return (

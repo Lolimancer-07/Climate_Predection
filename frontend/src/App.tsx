@@ -18,6 +18,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { RoleProvider, useRole, UserRole } from './components/RoleGate';
 import { StormProvider, useStorm } from './context/StormContext';
+import { Toaster } from 'sonner';
 
 // ── Shared GCS Components ──────────────────────────────────────────────────
 import { SiteHeader } from './components/SiteHeader';
@@ -31,6 +32,7 @@ import { TelemetryFdrMonitor } from './components/TelemetryFdrMonitor';
 // ── Pages ──────────────────────────────────────────────────────────────────
 import { OperationsOverview }    from './pages/OperationsOverview';
 import { LiveStormTracker }      from './pages/LiveStormTracker';
+import { NationalOverview }      from './pages/NationalOverview';
 import Dashboard                 from './pages/Dashboard';
 import { HardeningPriorityPage } from './pages/HardeningPriorityPage';
 import { DamageAssessmentPage }  from './pages/DamageAssessmentPage';
@@ -54,6 +56,7 @@ import {
   FileCheck,
   FileText,
   Gauge,
+  Globe2,
   HelpCircle,
   Layers,
   LayoutDashboard,
@@ -70,6 +73,7 @@ import {
 } from 'lucide-react';
 
 export type Page =
+  | 'national_overview'
   | 'overview'
   | 'live_tracker'
   | 'dashboard'
@@ -93,7 +97,8 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   // Operations
-  { id: 'overview',       label: 'Operations Overview',   icon: <LayoutDashboard className="h-4 w-4" />, group: 'Operations', roles: ['ddma_operator','admin','insurer_viewer','public'] },
+  { id: 'national_overview',label: 'National Multi-Hazard', icon: <Globe2 className="h-4 w-4 text-blue-400" />, group: 'Operations', roles: ['ddma_operator','admin','insurer_viewer','public'] },
+  { id: 'overview',       label: 'District Digital Twin', icon: <LayoutDashboard className="h-4 w-4" />, group: 'Operations', roles: ['ddma_operator','admin','insurer_viewer','public'] },
   { id: 'live_tracker',   label: 'Live Storm Tracker',    icon: <Radio className="h-4 w-4" />,           group: 'Operations', roles: ['ddma_operator','admin','insurer_viewer','public'] },
   { id: 'dashboard',      label: 'Impact Map & Inundation',icon: <Map className="h-4 w-4" />,             group: 'Operations', roles: ['ddma_operator','admin'] },
   { id: 'telemetry_fdr',  label: 'Telemetry FDR & Sniffer',icon: <Database className="h-4 w-4" />,        group: 'Operations', roles: ['ddma_operator','admin','insurer_viewer'] },
@@ -112,7 +117,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 function AppContent() {
-  const [activePage, setActivePage] = useState<Page>('overview');
+  const [activePage, setActivePage] = useState<Page>('national_overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [wsStatus, setWsStatus] = useState<'connected'|'connecting'|'disconnected'|'error'>('connecting');
   const [audioMuted, setAudioMuted] = useState(true);
@@ -156,6 +161,7 @@ function AppContent() {
 
   const renderPage = () => {
     switch (safeActivePage) {
+      case 'national_overview': return <NationalOverview onNavigateToStorm={() => setActivePage('live_tracker')} onNavigateToDistrict={() => setActivePage('dashboard')} />;
       case 'overview':       return <OperationsOverview onNavigate={setActivePage} />;
       case 'live_tracker':   return <LiveStormTracker onNavigateToDashboard={() => setActivePage('dashboard')} />;
       case 'dashboard':      return <Dashboard />;
@@ -168,7 +174,7 @@ function AppContent() {
       case 'damage':         return <DamageAssessmentPage />;
       case 'trends':         return <HistoricalTrendsPage />;
       case 'admin':          return <AdminPanel />;
-      default:               return <OperationsOverview onNavigate={setActivePage} />;
+      default:               return <NationalOverview onNavigateToStorm={() => setActivePage('live_tracker')} onNavigateToDistrict={() => setActivePage('dashboard')} />;
     }
   };
 
@@ -201,16 +207,16 @@ function AppContent() {
           {/* Brand header */}
           <div className="flex h-12 items-center justify-between border-b border-border/60 px-3.5">
             <div className="flex items-center gap-2 overflow-hidden">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-indigo-600 text-white font-bold shadow-sm">
-                🌀
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold shadow-sm">
+                🛡️
               </div>
               {sidebarOpen && (
                 <div className="truncate">
                   <div className="font-heading text-xs font-bold tracking-wide text-foreground">
-                    CYCLONE GCS
+                    KAVACH GCS
                   </div>
                   <div className="font-mono text-[9px] text-muted-foreground">
-                    Anticipatory Action Core
+                    Anticipatory Multi-Hazard Core
                   </div>
                 </div>
               )}
@@ -347,6 +353,7 @@ export default function App() {
     <RoleProvider>
       <StormProvider>
         <AppContent />
+        <Toaster theme="dark" position="bottom-right" richColors />
       </StormProvider>
     </RoleProvider>
   );

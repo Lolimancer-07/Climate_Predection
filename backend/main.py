@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from backend.db.session import init_db
 from backend.routers import ingest, risk, advisory, insurance, assets
 from backend.routers import pipeline, structural, damage_assessment, storms
+from backend.routers import hazards, notifications
 
 
 @asynccontextmanager
@@ -21,12 +22,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Cyclone Anticipatory Action Platform",
+    title="Kavach — Anticipatory Disaster Intelligence Platform",
     description=(
-        "AI-powered predictive risk, vulnerability modeling & parametric "
-        "insurance trigger platform for Bay of Bengal & coastal APAC cyclones."
+        "AI + Satellite + Structural-Physics Powered Anticipatory Disaster Intelligence "
+        "and Parametric Liquidity Platform covering All-India Multi-Hazards."
     ),
-    version="0.1.0",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -54,6 +55,10 @@ app.include_router(damage_assessment.router) # /damage-assessment/{event_id}
 
 # Routers — Phase 3
 app.include_router(storms.router)            # /v1/storms/*
+
+# Routers — Phase 4
+app.include_router(hazards.router)           # /v1/national/overview, /v1/hazards/*, /v1/states, /v1/districts
+app.include_router(notifications.router)     # /v1/notifications/*
 
 
 @app.get("/health", tags=["Health"])
