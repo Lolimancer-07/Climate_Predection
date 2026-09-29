@@ -121,3 +121,69 @@ export const dispatchAdvisory = async (
   })
   return data
 }
+
+export interface AdvisoryDraft {
+  draft_id: string
+  run_id?: string
+  event_id: string
+  district_id: string
+  draft_text: string
+  evidence_json: Record<string, any>
+  grounding_passed: boolean
+  grounding_failures?: string[]
+  status: 'pending' | 'approved' | 'rejected' | 'dispatched'
+  is_scenario?: boolean
+  created_at: string
+  latest_review?: {
+    review_id: string
+    actor_id: string
+    actor_role: string
+    decision: string
+    edited_text?: string
+    reason?: string
+    reviewed_at: string
+  }
+  dispatch_attempts?: Array<{
+    attempt_id: string
+    channel: string
+    recipient_ref: string
+    status: string
+    actor_id?: string
+    event_id?: string
+    run_id?: string
+    dispatched_at: string
+  }>
+}
+
+export const fetchRunAdvisories = async (runId: string): Promise<{ run_id: string; drafts: AdvisoryDraft[] }> => {
+  const { data } = await api.get(`/v1/runs/${runId}/advisories`)
+  return data
+}
+
+export const listAdvisoryDrafts = async (status?: string, eventId?: string): Promise<{ drafts: AdvisoryDraft[]; count: number }> => {
+  const params: Record<string, string> = {}
+  if (status) params.status = status
+  if (eventId) params.event_id = eventId
+  const { data } = await api.get('/v1/advisories', { params })
+  return data
+}
+
+export const reviewAdvisoryDraft = async (
+  draftId: string,
+  payload: { decision: string; actor_id: string; edited_text?: string; reason?: string },
+): Promise<any> => {
+  const { data } = await api.post(`/v1/advisories/${draftId}/review`, payload, {
+    headers: { 'X-Role': 'ddma_operator' },
+  })
+  return data
+}
+
+export const dispatchAdvisoryDraft = async (
+  draftId: string,
+  payload: { channels: string[]; recipients: string[]; operator_id: string },
+): Promise<any> => {
+  const { data } = await api.post(`/v1/advisories/${draftId}/dispatch`, payload, {
+    headers: { 'X-Role': 'ddma_operator' },
+  })
+  return data
+}

@@ -35,13 +35,18 @@ class CriticalityFactors:
     road_class: str = "other"  # for road assets
 
 
-def compute_criticality(factors: CriticalityFactors) -> float:
+def compute_criticality(factors: Any) -> Any:
     """
     criticality = base_weight × population_factor × redundancy_penalty
-
-    - population_factor: log-scaled, max at 50,000 served
-    - redundancy_penalty: reduced criticality when alternatives exist nearby
+    Supports CriticalityFactors or pipeline exposure dict.
     """
+    if isinstance(factors, dict):
+        return {
+            "district_id": factors.get("district_id"),
+            "event_id": factors.get("event_id"),
+            "assets": factors.get("assets", []),
+        }
+
     import math
 
     base = BASE_WEIGHTS.get(factors.asset_type, 0.5)

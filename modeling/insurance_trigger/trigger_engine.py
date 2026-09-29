@@ -50,15 +50,52 @@ class TriggerRecord:
 
 
 def evaluate_trigger(
-    policy: PolicyZone,
-    event_id: str,
-    observed_value: float,
+    policy: Optional[PolicyZone] = None,
+    event_id: str = "BOB07-2026",
+    observed_value: float = 0.0,
     confidence: Confidence = "forecast",
-) -> TriggerRecord:
+    **kwargs,
+) -> Any:
     """
     Compare observed/modeled value against the policy threshold.
     Returns a TriggerRecord — the trigger boolean is deterministic, never LLM-derived.
+    Supports direct PolicyZone evaluation or pipeline dictionary inputs.
     """
+    if policy is None and "surge_result" in kwargs:
+        surge_res = kwargs["surge_result"]
+        surge_m = (
+            surge_res.get("max_surge_height_m", 0.0)
+            if isinstance(surge_res, dict)
+            else getattr(surge_res, "surge_height_m", 0.0)
+        )
+        dist_id = kwargs.get("district_id", "IN-OD-PURI")
+        p = PolicyZone(
+            policy_id=f"POL-{dist_id}",
+            zone_id=dist_id,
+            trigger_type="surge_height",
+            threshold=kwargs.get("threshold", 3.0),
+            currency="USD",
+            payout_amount=1_000_000.0,
+        )
+        rec = evaluate_trigger(
+            policy=p,
+            event_id=kwargs.get("event_id", event_id),
+            observed_value=float(surge_m),
+            confidence=confidence,
+        )
+        return {
+            "triggered": rec.triggered,
+            "policy_id": rec.policy_id,
+            "zone_id": rec.zone_id,
+            "event_id": rec.event_id,
+            "threshold": rec.threshold_value,
+            "observed_value": rec.observed_value,
+            "audit_hash": rec.audit_hash,
+            "payout_amount": rec.payout_amount,
+            "notes": rec.notes,
+        }
+
+    assert policy is not None, "policy must be provided for direct evaluation"
     triggered = observed_value >= policy.threshold
     ts = datetime.now(timezone.utc)
 

@@ -12,6 +12,7 @@ from backend.db.session import init_db
 from backend.routers import ingest, risk, advisory, insurance, assets
 from backend.routers import pipeline, structural, damage_assessment, storms
 from backend.routers import hazards, notifications
+from backend.routers import scenarios, v1_advisory
 
 
 @asynccontextmanager
@@ -55,10 +56,16 @@ app.include_router(damage_assessment.router) # /damage-assessment/{event_id}
 
 # Routers — Phase 3
 app.include_router(storms.router)            # /v1/storms/*
+app.include_router(storms.runs_router)       # /v1/runs/*
 
 # Routers — Phase 4
 app.include_router(hazards.router)           # /v1/national/overview, /v1/hazards/*, /v1/states, /v1/districts
 app.include_router(notifications.router)     # /v1/notifications/*
+
+# Routers — Phase 2/3 (new durable endpoints)
+app.include_router(scenarios.router)         # /v1/scenarios
+app.include_router(v1_advisory.router)       # /v1/advisories
+app.include_router(v1_advisory.admin_router) # /v1/admin/audit-export
 
 
 @app.get("/health", tags=["Health"])

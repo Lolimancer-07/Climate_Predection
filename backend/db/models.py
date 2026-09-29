@@ -1,14 +1,16 @@
 """
 backend/db/models.py
-SQLAlchemy ORM models matching the database schema from the implementation plan.
+SQLAlchemy ORM models — Phase 2/3 expansion.
+Adds: PipelineRun, PipelineStage, AdvisoryDraft, AdvisoryReview,
+       DispatchAttempt, Scenario, ScenarioOutput
 """
 import uuid
 from datetime import datetime, timezone
 from sqlalchemy import (
     Column, String, Text, Boolean, Numeric, Integer,
-    ForeignKey, TIMESTAMP, func,
+    ForeignKey, TIMESTAMP, func, JSON,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB
 from geoalchemy2 import Geometry
 from backend.db.session import Base
 
@@ -16,6 +18,8 @@ from backend.db.session import Base
 def _uuid():
     return str(uuid.uuid4())
 
+
+# ── Phase 1 models (unchanged) ────────────────────────────────────────────────
 
 class District(Base):
     __tablename__ = "districts"
@@ -41,7 +45,7 @@ class CycloneEvent(Base):
 
     event_id = Column(String, primary_key=True, default=_uuid)
     name = Column(String, nullable=True)
-    source = Column(String, nullable=True)          # IMD | JTWC | GDACS
+    source = Column(String, nullable=True)          # IMD | JTWC | GDACS | mock
     category = Column(String, nullable=True)
     eta = Column(TIMESTAMP(timezone=True), nullable=True)
     track_geom = Column(Geometry("LINESTRING", srid=4326), nullable=True)
@@ -56,7 +60,7 @@ class HazardPolygon(Base):
     ward_id = Column(String, ForeignKey("wards.ward_id"), nullable=True)
     hazard_type = Column(String, nullable=False)    # surge | rainfall_flood
     severity_class = Column(String, nullable=True)
-    attribute_value = Column(Numeric, nullable=True)  # surge height (m) or rainfall (mm)
+    attribute_value = Column(Numeric, nullable=True)
     geom = Column(Geometry("MULTIPOLYGON", srid=4326), nullable=True)
     model_version = Column(String, nullable=True)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
@@ -67,7 +71,7 @@ class InfrastructureAsset(Base):
 
     asset_id = Column(String, primary_key=True, default=_uuid)
     ward_id = Column(String, ForeignKey("wards.ward_id"), nullable=True)
-    asset_type = Column(String, nullable=False)    # hospital | shelter | road | power_line | substation
+    asset_type = Column(String, nullable=False)
     name = Column(String, nullable=True)
     criticality = Column(Numeric, nullable=True)
     geom = Column(Geometry(srid=4326), nullable=True)
@@ -78,9 +82,10 @@ class ExposureScore(Base):
 
     score_id = Column(String, primary_key=True, default=_uuid)
     event_id = Column(String, ForeignKey("cyclone_events.event_id"), nullable=False)
-    asset_id = Column(String, ForeignKey("infrastructure_assets.asset_id"), nullable=False)
-    exposure_score = Column(Numeric, nullable=True)
-    priority_score = Column(Numeric, nullable=True)
+    ward_id = Column(String, ForeignKey("wards.ward_id"), nullable=False)
+    surge_exposure = Column(Numeric, nullable=True)
+    rainfall_exposure = Column(Numeric, nullable=True)
+    combined_score = Column(Numeric, nullable=True)
     computed_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
 
@@ -88,84 +93,136 @@ class Advisory(Base):
     __tablename__ = "advisories"
 
     advisory_id = Column(String, primary_key=True, default=_uuid)
-    event_id = Column(String, ForeignKey("cyclone_events.event_id"), nullable=False)
     ward_id = Column(String, ForeignKey("wards.ward_id"), nullable=True)
-    severity_tier = Column(String, nullable=True)   # Watch | Warning | Evacuation Order
-    content_en = Column(Text, nullable=True)
-    content_local = Column(Text, nullable=True)
-    generated_by = Column(String, default="gemini-2.0-flash")
-    reviewed_by = Column(String, nullable=True)
-    dispatched_at = Column(TIMESTAMP(timezone=True), nullable=True)
-
-
-class InsuranceTrigger(Base):
-    __tablename__ = "insurance_triggers"
-
-    trigger_id = Column(String, primary_key=True, default=_uuid)
-    policy_id = Column(String, nullable=True)
-    zone_id = Column(String, nullable=True)
     event_id = Column(String, ForeignKey("cyclone_events.event_id"), nullable=False)
-    trigger_type = Column(String, nullable=True)
-    threshold_value = Column(Numeric, nullable=True)
-    observed_value = Column(Numeric, nullable=True)
-    triggered = Column(Boolean, nullable=True)
-    trigger_timestamp = Column(TIMESTAMP(timezone=True), nullable=True)
-    audit_hash = Column(String, nullable=True)
+    severity_tier = Column(String, nullable=False)
+    content_en = Column(Text, nullable=False)
+    content_local = Column(Text, nullable=True)
+    validation_passed = Column(Boolean, default=False)
+    status = Column(String, default="draft")
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
 
 class DispatchLog(Base):
-    __tablename__ = "dispatch_log"
+    __tablename__ = "dispatch_logs"
 
-    dispatch_id = Column(String, primary_key=True, default=_uuid)
+    log_id = Column(String, primary_key=True, default=_uuid)
     advisory_id = Column(String, ForeignKey("advisories.advisory_id"), nullable=False)
-    channel = Column(String, nullable=True)    # sms | whatsapp | cap_xml | pdf | insurer_webhook
-    recipient = Column(String, nullable=True)
-    status = Column(String, nullable=True)
+    channel = Column(String, nullable=False)
+    recipient = Column(String, nullable=False)
+    status = Column(String, nullable=False)
     dispatched_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
-# ── Phase 3: Real-Time Prediction Models ──────────────────────────────────────
 
-class ActiveStorm(Base):
-    __tablename__ = "active_storms"
+# ── Phase 2 models (new) ──────────────────────────────────────────────────────
 
-    storm_id = Column(String, primary_key=True)
-    basin_id = Column(String, nullable=True)
-    name = Column(String, nullable=True)
-    status = Column(String, nullable=True)             # active_forecast | dissipated | post_landfall
-    provider_source = Column(String, nullable=True)    # mock | imd | jtwc | gdacs
-    genesis_time = Column(TIMESTAMP(timezone=True), nullable=True)
-    last_updated = Column(TIMESTAMP(timezone=True), nullable=True)
+class PipelineRun(Base):
+    """Durable record of every pipeline execution attempt."""
+    __tablename__ = "pipeline_runs"
 
-
-class StormTrackPoint(Base):
-    __tablename__ = "storm_track_points"
-
-    point_id = Column(String, primary_key=True, default=_uuid)
-    storm_id = Column(String, ForeignKey("active_storms.storm_id"), nullable=False)
-    point_type = Column(String, nullable=True)         # observed | forecast
-    lead_hours = Column(Integer, nullable=True)
-    timestamp = Column(TIMESTAMP(timezone=True), nullable=True)
-    lat = Column(Numeric, nullable=True)
-    lon = Column(Numeric, nullable=True)
-    central_pressure_hpa = Column(Numeric, nullable=True)
-    max_wind_kmh = Column(Numeric, nullable=True)
-    category = Column(String, nullable=True)
+    run_id = Column(String, primary_key=True, default=_uuid)
+    event_id = Column(String, nullable=False)
+    district_id = Column(String, nullable=False)
+    idempotency_key = Column(String, unique=True, nullable=False)
+    status = Column(String, nullable=False, default="queued")
+    provider = Column(String, nullable=False, default="mock")
+    provider_freshness_s = Column(Integer, nullable=True)
+    # JSON column for config (use JSON for SQLite compat, JSONB for Postgres)
+    config_snapshot = Column(JSON, nullable=False, default=dict)
+    is_scenario = Column(Boolean, nullable=False, default=False)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    completed_at = Column(TIMESTAMP(timezone=True), nullable=True)
 
 
-class ForecastCone(Base):
-    __tablename__ = "forecast_cones"
+class PipelineStage(Base):
+    """One record per stage of a pipeline run."""
+    __tablename__ = "pipeline_stages"
 
-    cone_id = Column(String, primary_key=True, default=_uuid)
-    storm_id = Column(String, ForeignKey("active_storms.storm_id"), nullable=False)
-    generated_at = Column(TIMESTAMP(timezone=True), nullable=True)
-    geom = Column(Geometry("MULTIPOLYGON", srid=4326), nullable=True)
+    stage_id = Column(String, primary_key=True, default=_uuid)
+    run_id = Column(String, ForeignKey("pipeline_runs.run_id", ondelete="CASCADE"), nullable=False)
+    stage_name = Column(String, nullable=False)
+    status = Column(String, nullable=False, default="queued")
+    started_at = Column(TIMESTAMP(timezone=True), nullable=True)
+    completed_at = Column(TIMESTAMP(timezone=True), nullable=True)
+    error = Column(Text, nullable=True)
+    model_name = Column(String, nullable=True)
+    model_version = Column(String, nullable=True)
+    output_ref = Column(String, nullable=True)
 
 
-class ThreatenedDistrict(Base):
-    __tablename__ = "threatened_districts"
+class AdvisoryDraft(Base):
+    """Gemini-generated advisory draft waiting for human review."""
+    __tablename__ = "advisory_drafts"
 
-    id = Column(String, primary_key=True, default=_uuid)
-    storm_id = Column(String, ForeignKey("active_storms.storm_id"), nullable=False)
-    district_id = Column(String, ForeignKey("districts.district_id"), nullable=False)
-    earliest_impact_hour = Column(Integer, nullable=True)
+    draft_id = Column(String, primary_key=True, default=_uuid)
+    run_id = Column(String, ForeignKey("pipeline_runs.run_id"), nullable=True)
+    event_id = Column(String, nullable=False)
+    district_id = Column(String, nullable=False)
+    draft_text = Column(Text, nullable=False)
+    evidence_json = Column(JSON, nullable=False, default=dict)
+    grounding_passed = Column(Boolean, nullable=False, default=False)
+    grounding_failures = Column(JSON, nullable=True)
+    # pending | approved | rejected | dispatched
+    status = Column(String, nullable=False, default="pending")
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+
+
+class AdvisoryReview(Base):
+    """Human operator review decision for an advisory draft."""
+    __tablename__ = "advisory_reviews"
+
+    review_id = Column(String, primary_key=True, default=_uuid)
+    draft_id = Column(String, ForeignKey("advisory_drafts.draft_id"), nullable=False)
+    actor_role = Column(String, nullable=False)
+    actor_id = Column(String, nullable=False)
+    # approved | rejected | edited
+    decision = Column(String, nullable=False)
+    edited_text = Column(Text, nullable=True)
+    reason = Column(Text, nullable=True)
+    reviewed_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+
+
+class DispatchAttempt(Base):
+    """One record per channel per dispatch action — the canonical dispatch audit trail."""
+    __tablename__ = "dispatch_attempts"
+
+    attempt_id = Column(String, primary_key=True, default=_uuid)
+    draft_id = Column(String, ForeignKey("advisory_drafts.draft_id"), nullable=False)
+    channel = Column(String, nullable=False)
+    recipient_ref = Column(String, nullable=False)
+    # sent | failed | sandbox
+    status = Column(String, nullable=False)
+    provider_response = Column(JSON, nullable=True)
+    actor_id = Column(String, nullable=True)
+    event_id = Column(String, nullable=True)
+    run_id = Column(String, nullable=True)
+    dispatched_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+
+
+# ── Phase 3 models (scenario immutability) ────────────────────────────────────
+
+class Scenario(Base):
+    """Immutable parameter set applied over a baseline pipeline run."""
+    __tablename__ = "scenarios"
+
+    scenario_id = Column(String, primary_key=True, default=_uuid)
+    baseline_run_id = Column(String, ForeignKey("pipeline_runs.run_id"), nullable=False)
+    event_id = Column(String, nullable=False)
+    district_id = Column(String, nullable=False)
+    params = Column(JSON, nullable=False, default=dict)
+    label = Column(String, nullable=True)
+    created_by = Column(String, nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    status = Column(String, nullable=False, default="queued")
+
+
+class ScenarioOutput(Base):
+    """Results of running scenario pipeline stages."""
+    __tablename__ = "scenario_outputs"
+
+    output_id = Column(String, primary_key=True, default=_uuid)
+    scenario_id = Column(String, ForeignKey("scenarios.scenario_id", ondelete="CASCADE"), nullable=False)
+    stage_name = Column(String, nullable=False)
+    result_json = Column(JSON, nullable=False, default=dict)
+    model_version = Column(String, nullable=False)
     computed_at = Column(TIMESTAMP(timezone=True), server_default=func.now())

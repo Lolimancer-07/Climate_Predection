@@ -114,3 +114,30 @@ def load_historical_rainfall(cyclone_name: str, district_id: str) -> RainfallFor
         grid_cells=[cell],
         **p,
     )
+
+
+def get_rainfall_forecast(lat: float, lon: float, district_id: str) -> dict:
+    """
+    Get rainfall forecast dictionary for pipeline execution.
+    Falls back gracefully to demo preset if Open-Meteo network request fails.
+    """
+    try:
+        fc = fetch_rainfall_forecast(lat, lon, district_id, timeout=3)
+        return {
+            "district_id": district_id,
+            "max_rainfall_mm_24h": fc.max_rainfall_mm_24h,
+            "max_rainfall_mm_48h": fc.max_rainfall_mm_48h,
+            "max_rainfall_mm_72h": fc.max_rainfall_mm_72h,
+            "max_wind_speed_kmh": fc.max_wind_speed_kmh,
+            "source": "open_meteo_live",
+        }
+    except Exception:
+        fc = load_historical_rainfall("FANI-2019", district_id)
+        return {
+            "district_id": district_id,
+            "max_rainfall_mm_24h": fc.max_rainfall_mm_24h,
+            "max_rainfall_mm_48h": fc.max_rainfall_mm_48h,
+            "max_rainfall_mm_72h": fc.max_rainfall_mm_72h,
+            "max_wind_speed_kmh": fc.max_wind_speed_kmh,
+            "source": "open_meteo_fallback",
+        }

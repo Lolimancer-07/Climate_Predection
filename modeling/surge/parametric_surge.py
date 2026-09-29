@@ -198,3 +198,30 @@ def fani_demo_surge() -> SurgeResult:
         event_id="CYCLONE-FANI-2019",
     )
     return run_parametric_surge_model(inp)
+
+
+def compute_surge(track: dict, district_id: str) -> dict:
+    """Convenience adapter for pipeline execution."""
+    inp = SurgeInput(
+        central_pressure_hpa=float(track.get("central_pressure_hpa", 932.0)),
+        radius_max_wind_nm=float(track.get("radius_max_wind_nm", 45.0)),
+        forward_speed_kt=float(track.get("forward_speed_kt", 12.0)),
+        shelf_slope_deg=0.40,
+        landfall_lat=float(track.get("landfall_lat", 19.8)),
+        landfall_lon=float(track.get("landfall_lon", 85.83)),
+        district_id=district_id,
+        event_id=track.get("event_id", "BOB07-2026"),
+    )
+    result = run_parametric_surge_model(inp)
+    return {
+        "event_id": result.event_id,
+        "district_id": result.district_id,
+        "model_version": result.model_version,
+        "surge_height_m": result.surge_height_m,
+        "max_surge_height_m": result.surge_height_m,
+        "inundation_radius_km": result.inundation_radius_km,
+        "shelf_amplification_factor": result.shelf_amplification_factor,
+        "confidence": result.confidence,
+        "inundation_geojson": result.inundation_geojson,
+        "notes": result.notes,
+    }

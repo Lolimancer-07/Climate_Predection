@@ -291,7 +291,7 @@ export default function Dashboard() {
 
         {/* ── Center: Interactive MapView ────────────────────────────── */}
         <main style={{ position: 'relative', height: '100%', width: '100%', overflow: 'hidden' }}>
-          <MapView ward={ward ?? null} onWardSelect={setSelectedWard} />
+          <MapView stormId={activeStorm?.storm_id ?? 'BOB07-2026'} />
 
           {/* Tactical Map Overlay Header */}
           <div style={{

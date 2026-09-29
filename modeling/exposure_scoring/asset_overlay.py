@@ -106,3 +106,44 @@ def score_all_assets(
     scores = [compute_exposure(a, hazard_features) for a in assets]
     scores.sort(key=lambda s: s.priority_score, reverse=True)
     return scores
+
+
+def score_asset_exposure(surge_result: dict, flood_result: dict, district_id: str) -> dict:
+    """Convenience adapter for pipeline execution."""
+    from scripts.demo_run import PURI_DEMO_ASSETS
+    from data_ingestion.exposure.shelters import load_shelters, shelter_to_asset_dict
+
+    try:
+        shelters = [shelter_to_asset_dict(s) for s in load_shelters(district_id)]
+    except Exception:
+        shelters = []
+
+    all_assets = list(PURI_DEMO_ASSETS) + [s for s in shelters if s not in PURI_DEMO_ASSETS]
+    hazard_features = []
+    if "inundation_geojson" in surge_result and surge_result["inundation_geojson"]:
+        hazard_features.append(surge_result["inundation_geojson"])
+
+    event_id = surge_result.get("event_id", "BOB07-2026")
+    scores = score_all_assets(all_assets, hazard_features, event_id)
+
+    asset_list = []
+    for s in scores:
+        d = {
+            "asset_id": s.asset_id,
+            "asset_type": s.asset_type,
+            "asset_name": s.asset_name,
+            "exposure_score": s.exposure_score,
+            "priority_score": s.priority_score,
+            "severity_class": s.severity_class,
+            "flagged": s.flagged,
+            "flag_reason": s.flag_reason,
+            "surge_height_m": surge_result.get("max_surge_height_m", 0.0) if s.exposure_score > 0 else 0.0,
+        }
+        asset_list.append(d)
+
+    return {
+        "district_id": district_id,
+        "event_id": event_id,
+        "assets": asset_list,
+        "flagged_count": len([a for a in asset_list if a["flagged"]]),
+    }

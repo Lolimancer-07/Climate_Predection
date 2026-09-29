@@ -163,14 +163,34 @@ export default function DispatchControls({ advisory, onDispatched }: Props) {
 
       {result && (
         <div style={{
-          marginTop: 10, padding: '8px 10px',
+          marginTop: 12, padding: '10px 12px',
           background: result.error ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
           border: `1px solid ${result.error ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'}`,
-          borderRadius: 'var(--radius-sm)', fontSize: 10,
+          borderRadius: 'var(--radius-sm)', fontSize: 11,
           color: result.error ? 'var(--color-evacuation)' : 'var(--color-safe)',
           fontFamily: 'var(--font-mono)',
         }}>
-          {result.error ? `Error: ${result.error}` : `✅ Dispatched: Advisory ID ${result.advisory_id ?? advisory.advisory_id}`}
+          {result.error ? (
+            <div>🚨 Error: {result.error}</div>
+          ) : (
+            <div>
+              <div style={{ fontWeight: 700, marginBottom: 4, color: '#22c55e' }}>
+                ✓ Dispatch record #{result.attempt_id?.slice(0, 8) || result.advisory_id?.slice(0, 8) || 'D-REC'}
+              </div>
+              <div style={{ color: 'var(--color-text)', display: 'grid', gridTemplateColumns: '80px 1fr', gap: '2px 8px', fontSize: 10 }}>
+                <span style={{ color: 'var(--color-text-muted)' }}>Actor:</span>
+                <span>{operatorId} (ddma_operator)</span>
+                <span style={{ color: 'var(--color-text-muted)' }}>Time:</span>
+                <span>{new Date().toISOString()}</span>
+                <span style={{ color: 'var(--color-text-muted)' }}>Event:</span>
+                <span>{advisory.event_id || 'BOB07-2026'}</span>
+                <span style={{ color: 'var(--color-text-muted)' }}>Channels:</span>
+                <span>
+                  {selectedChannels.map(c => `${c.toUpperCase()} (${result.status === 'failed' ? 'failed ✗' : 'sent ✓'})`).join(' · ')}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -105,3 +105,30 @@ def fani_ward7_runoff() -> RunoffResult:
         land_cover_permeability=0.55,
         district_id="IN-OD-PURI",
     ))
+
+
+def compute_flash_flood(rainfall_data: dict, district_id: str) -> dict:
+    """Convenience adapter for pipeline execution."""
+    rain_48h = float(rainfall_data.get("max_rainfall_mm_48h", 250.0))
+    rain_24h = float(rainfall_data.get("max_rainfall_mm_24h", rain_48h * 0.6))
+    inp = RunoffInput(
+        ward_id=f"{district_id}-WARD-01",
+        event_id=rainfall_data.get("event_id", "BOB07-2026"),
+        rainfall_mm_24h=rain_24h,
+        rainfall_mm_48h=rain_48h,
+        avg_twi=12.5,
+        land_cover_permeability=0.55,
+        district_id=district_id,
+    )
+    result = run_runoff_model(inp)
+    return {
+        "ward_id": result.ward_id,
+        "event_id": result.event_id,
+        "model_version": result.model_version,
+        "runoff_risk_score": result.runoff_risk_score,
+        "flash_flood_risk_score": result.runoff_risk_score,
+        "severity_class": result.severity_class,
+        "rainfall_mm_48h": result.rainfall_mm_48h,
+        "contributing_factors": result.contributing_factors,
+        "notes": result.notes,
+    }

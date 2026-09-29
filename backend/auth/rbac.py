@@ -82,7 +82,7 @@ def require_permission(action: str):
             )
         return role
 
-    return Depends(dependency)
+    return dependency
 
 
 def role_can(role: Role, action: str) -> bool:
