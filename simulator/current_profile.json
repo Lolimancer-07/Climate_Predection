@@ -2,5 +2,8 @@
   "mode": "NORMAL",
   "speed": 1.0,
   "paused": false,
-  "injected_faults": []
+  "injected_faults": [],
+  "district_id": "IN-OD-PURI",
+  "uav_id": "IN-OD-PURI",
+  "storm_name": "FANI-2019"
 }

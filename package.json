@@ -4,9 +4,10 @@
   "private": true,
   "description": "Cyclone Anticipatory Action Platform root runner",
   "scripts": {
-    "build": "npm --prefix frontend run build",
-    "dev": "npm --prefix frontend run dev",
-    "preview": "npm --prefix frontend run preview",
-    "lint": "npm --prefix frontend run lint"
-  }
+    "build": "pnpm --prefix frontend run build",
+    "dev": "pnpm --prefix frontend run dev",
+    "preview": "pnpm --prefix frontend run preview",
+    "lint": "pnpm --prefix frontend run lint"
+  },
+  "packageManager": "pnpm@11.3.0"
 }

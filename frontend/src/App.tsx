@@ -162,7 +162,7 @@ function AppContent() {
   const renderPage = () => {
     switch (safeActivePage) {
       case 'national_overview': return <NationalOverview onNavigateToStorm={() => setActivePage('live_tracker')} onNavigateToDistrict={() => setActivePage('dashboard')} />;
-      case 'overview':       return <OperationsOverview onNavigate={setActivePage} />;
+      case 'overview':       return <OperationsOverview onNavigate={(p: string) => setActivePage(p as Page)} />;
       case 'live_tracker':   return <LiveStormTracker onNavigateToDashboard={() => setActivePage('dashboard')} />;
       case 'dashboard':      return <Dashboard />;
       case 'telemetry_fdr':  return <div className="p-6"><TelemetryFdrMonitor /></div>;

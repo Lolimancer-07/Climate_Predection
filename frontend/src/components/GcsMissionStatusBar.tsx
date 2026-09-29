@@ -1,146 +1,264 @@
 /**
- * frontend/src/components/GcsMissionStatusBar.tsx
+ * GcsMissionStatusBar.tsx — Cyclone Anticipatory Action Platform
  *
- * GCS Mission Status Hero Ribbon.
- * High-density operational HUD displaying cyclone classification, central pressure,
- * sustained wind speed, storm surge peak, exposed population, lead time, and parametric status.
+ * UAV-style persistent mission bar adapted for cyclone domain.
+ * Shows: Storm ID · Status Badge · Live telemetry HUD pills (Wind, Surge, Rainfall, Pop, Elapsed)
+ * Profile tabs · Pause/Resume · Audio · Safe Return equivalent (HITL DISPATCH)
  */
-import React from 'react';
-import { useStorm } from '../context/StormContext';
+import * as React from "react";
 import {
   Activity,
   AlertTriangle,
-  Compass,
-  Gauge,
+  Bell,
+  CheckCircle2,
+  ChevronRight,
+  Clock,
+  Droplets,
+  FastForward,
+  Pause,
+  Play,
+  Radio,
+  Satellite,
+  Shield,
   ShieldAlert,
-  Waves,
+  Users,
+  Volume2,
+  VolumeX,
   Wind,
-  Zap,
-} from 'lucide-react';
+} from "lucide-react";
+import { Badge } from "./ui/badge";
+
+function metHms(secs: number): string {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function LiveClock() {
+  const [time, setTime] = React.useState("");
+  React.useEffect(() => {
+    const update = () => {
+      const now = new Date();
+      setTime(now.toISOString().replace("T", " ").slice(0, 19) + " UTC");
+    };
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, []);
+  return <span className="font-mono tabular-nums">{time || "—"}</span>;
+}
 
 interface GcsMissionStatusBarProps {
-  stormCategory?: string;
-  centralPressure?: number;
-  maxWindKmh?: number;
-  peakSurgeM?: number;
-  exposedPopulation?: number;
+  stormId?: string;
+  windKmh?: number;
+  surgeM?: number;
+  rainfallMm?: number;
+  exposedPop?: number;
+  alertLevel?: "NOMINAL" | "WARNING" | "CRITICAL";
+  dataMode?: "FORECAST" | "SIMULATED" | "HISTORICAL";
+  wsConnected?: boolean;
+  onDispatch?: () => void;
 }
 
 export function GcsMissionStatusBar({
-  stormCategory = 'Category 4 Super Cyclone',
-  centralPressure = 932,
-  maxWindKmh = 215,
-  peakSurgeM = 4.2,
-  exposedPopulation = 240000,
+  stormId = "BOB07-2026",
+  windKmh = 220,
+  surgeM = 4.2,
+  rainfallMm = 312,
+  exposedPop = 284000,
+  alertLevel = "CRITICAL",
+  dataMode = "FORECAST",
+  wsConnected = true,
+  onDispatch,
 }: GcsMissionStatusBarProps) {
-  const { simLeadTime, activeScenario } = useStorm();
+  const [metSecs, setMetSecs] = React.useState(5406);
+  const [isPaused, setIsPaused] = React.useState(false);
+  const [audioOn, setAudioOn] = React.useState(true);
+  const [profile, setProfile] = React.useState("NORMAL 10X");
 
-  const isTriggered = centralPressure <= 940 && maxWindKmh >= 180;
+  const profiles = ["NORMAL 10X", "HIGH-ALT", "NOT-MX", "MAX-LOSTER", "RAPID-RPM"];
+
+  React.useEffect(() => {
+    if (isPaused) return;
+    const id = setInterval(() => setMetSecs((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [isPaused]);
+
+  const isCritical = alertLevel === "CRITICAL";
+  const isWarning = alertLevel === "WARNING";
+  const isNominal = !isCritical && !isWarning;
+
+  const statusColor = isCritical
+    ? "bg-red-500"
+    : isWarning
+    ? "bg-amber-500"
+    : "bg-emerald-500";
+
+  const statusText = isCritical
+    ? "SYSTEM CRITICAL"
+    : isWarning
+    ? "ANOMALY DETECTED"
+    : "SYSTEM NOMINAL";
+
+  const statusBg = isCritical
+    ? "border-red-800 bg-red-950/50"
+    : isWarning
+    ? "border-amber-800 bg-amber-950/50"
+    : "border-border bg-card";
 
   return (
-    <div className="w-full border-y border-border/80 bg-gradient-to-r from-card via-card/90 to-card px-4 py-3 shadow-md backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4">
-        {/* Metric 1: Storm Category */}
+    <div className={`mx-4 lg:mx-6 rounded-xl border ${statusBg} shadow-sm overflow-hidden`}>
+      {/* ── Row 1: Storm identity + status + live clock ─────────────── */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 border-b border-border/60">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-destructive/40 bg-destructive/15 text-destructive shadow-sm">
-            <ShieldAlert className="h-5 w-5 animate-pulse" />
-          </div>
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              Classification
-            </div>
-            <div className="font-heading text-sm font-bold text-foreground">
-              {stormCategory}
-            </div>
-            <div className="text-[10px] text-muted-foreground">
-              Landfall ETA: <span className="font-mono font-bold text-primary">T-{simLeadTime}h</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Metric 2: Central Pressure */}
-        <div className="flex items-center gap-3 border-l border-border/60 pl-4">
-          <Gauge className="h-5 w-5 text-sky-400" />
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              Barometer Deficit
-            </div>
-            <div className="font-mono text-base font-bold text-sky-400">
-              {centralPressure} <span className="text-xs text-muted-foreground">hPa</span>
-            </div>
-            <div className="text-[10px] text-muted-foreground">
-              ΔP = -{1013 - centralPressure} hPa
-            </div>
-          </div>
-        </div>
-
-        {/* Metric 3: Sustained Wind */}
-        <div className="flex items-center gap-3 border-l border-border/60 pl-4">
-          <Wind className="h-5 w-5 text-amber-400" />
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              Sustained Wind
-            </div>
-            <div className="font-mono text-base font-bold text-amber-400">
-              {maxWindKmh} <span className="text-xs text-muted-foreground">km/h</span>
-            </div>
-            <div className="text-[10px] text-muted-foreground">
-              Gusts: 245 km/h
-            </div>
-          </div>
-        </div>
-
-        {/* Metric 4: Peak Surge */}
-        <div className="flex items-center gap-3 border-l border-border/60 pl-4">
-          <Waves className="h-5 w-5 text-cyan-400" />
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              Peak Storm Surge
-            </div>
-            <div className="font-mono text-base font-bold text-cyan-400">
-              +{peakSurgeM.toFixed(1)} <span className="text-xs text-muted-foreground">m MSL</span>
-            </div>
-            <div className="text-[10px] text-muted-foreground">
-              Puri Coastal Ward 7
-            </div>
-          </div>
-        </div>
-
-        {/* Metric 5: Exposed Population */}
-        <div className="hidden items-center gap-3 border-l border-border/60 pl-4 lg:flex">
-          <Compass className="h-5 w-5 text-purple-400" />
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              Pop. At Inundation Risk
-            </div>
-            <div className="font-mono text-base font-bold text-purple-400">
-              {(exposedPopulation / 1000).toFixed(0)}k <span className="text-xs text-muted-foreground">citizens</span>
-            </div>
-            <div className="text-[10px] text-muted-foreground">
-              64% Sheltered
-            </div>
-          </div>
-        </div>
-
-        {/* Metric 6: Parametric Insurance Trigger Status */}
-        <div className="flex items-center gap-2 border-l border-border/60 pl-4">
-          <div className="flex flex-col items-end">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-              Parametric Trigger
-            </span>
+          {/* Pulse dot */}
+          <div className="relative flex size-3">
+            {wsConnected && (
+              <span
+                className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${statusColor}`}
+              />
+            )}
             <span
-              className={`rounded px-2 py-0.5 font-mono text-[10px] font-bold uppercase ${
-                isTriggered
-                  ? 'border border-purple-500/50 bg-purple-500/15 text-purple-400 animate-pulse'
-                  : 'border border-border bg-muted text-muted-foreground'
+              className={`relative inline-flex rounded-full size-3 ${statusColor}`}
+            />
+          </div>
+
+          {/* Storm ID */}
+          <div>
+            <span className="font-mono text-xs font-bold text-muted-foreground uppercase">
+              ACTIVE STORM
+            </span>
+            <div className="font-bold text-foreground leading-tight">{stormId}</div>
+          </div>
+
+          {/* Twin status */}
+          <div>
+            <span className="font-mono text-xs font-bold text-muted-foreground uppercase">
+              TWIN STATUS
+            </span>
+            <div
+              className={`font-bold text-sm leading-tight ${
+                isCritical
+                  ? "text-red-400"
+                  : isWarning
+                  ? "text-amber-400"
+                  : "text-emerald-400"
               }`}
             >
-              {isTriggered ? 'TRIGGERED (100% AUDIT)' : 'PENDING'}
-            </span>
-            <span className="text-[9px] font-mono text-muted-foreground">
-              HMAC-SHA256 Signed
+              {statusText}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Live telemetry pills */}
+        <div className="flex flex-wrap items-center gap-3 text-xs font-mono">
+          <div className="flex items-center gap-1.5">
+            <Wind className="size-3.5 text-muted-foreground" />
+            <span className="text-muted-foreground uppercase">Wind</span>
+            <span className="font-bold text-foreground">
+              {Math.round(windKmh)} km/h
             </span>
           </div>
+          <div className="text-border/40">|</div>
+          <div className="flex items-center gap-1.5">
+            <Droplets className="size-3.5 text-sky-400" />
+            <span className="text-muted-foreground uppercase">Surge</span>
+            <span className="font-bold text-sky-400">{surgeM.toFixed(1)} m</span>
+          </div>
+          <div className="text-border/40">|</div>
+          <div className="flex items-center gap-1.5">
+            <Activity className="size-3.5 text-cyan-400" />
+            <span className="text-muted-foreground uppercase">Rain</span>
+            <span className="font-bold text-cyan-400">{Math.round(rainfallMm)} mm</span>
+          </div>
+          <div className="text-border/40">|</div>
+          <div className="flex items-center gap-1.5">
+            <Users className="size-3.5 text-amber-400" />
+            <span className="text-muted-foreground uppercase">Pop</span>
+            <span className="font-bold text-amber-400">
+              {(exposedPop / 1000).toFixed(0)}k
+            </span>
+          </div>
+          <div className="text-border/40">|</div>
+          <div className="flex items-center gap-1.5">
+            <Clock className="size-3.5 text-muted-foreground" />
+            <span className="text-muted-foreground uppercase">Elapsed</span>
+            <span className="font-bold text-foreground">{metHms(metSecs)}</span>
+          </div>
+          <div className="text-border/40">|</div>
+          <LiveClock />
+          <div className="text-border/40">|</div>
+          <Badge
+            className={`font-bold text-[10px] ${
+              dataMode === "SIMULATED"
+                ? "bg-amber-600 text-white"
+                : "bg-emerald-600 text-white animate-pulse"
+            }`}
+          >
+            {dataMode === "FORECAST" ? "● 10Hz LIVE" : `● ${dataMode}`}
+          </Badge>
+        </div>
+      </div>
+
+      {/* ── Row 2: Profile tabs + action controls ───────────────────── */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
+        {/* Profile selector */}
+        <div className="flex items-center gap-1">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase mr-1">
+            PROFILE:
+          </span>
+          {profiles.map((p) => (
+            <button
+              key={p}
+              onClick={() => setProfile(p)}
+              className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${
+                profile === p
+                  ? "bg-primary text-white"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+
+        {/* Controls */}
+        <div className="flex items-center gap-2">
+          {/* Pause/Resume */}
+          <button
+            onClick={() => setIsPaused((v) => !v)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border text-xs font-semibold hover:bg-muted transition-colors"
+          >
+            {isPaused ? (
+              <Play className="size-3" />
+            ) : (
+              <Pause className="size-3" />
+            )}
+            {isPaused ? "RESUME" : "PAUSE"}
+          </button>
+
+          {/* Audio */}
+          <button
+            onClick={() => setAudioOn((v) => !v)}
+            className="p-1.5 rounded-lg border border-border hover:bg-muted transition-colors"
+          >
+            {audioOn ? (
+              <Volume2 className="size-3.5 text-foreground" />
+            ) : (
+              <VolumeX className="size-3.5 text-muted-foreground" />
+            )}
+          </button>
+
+          {/* HITL Dispatch (= Safe Return equivalent) */}
+          <button
+            onClick={onDispatch}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-bold hover:bg-sky-700 transition-colors shadow-sm"
+          >
+            <Shield className="size-3" />
+            HITL DISPATCH
+            <ChevronRight className="size-3" />
+          </button>
         </div>
       </div>
     </div>

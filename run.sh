@@ -179,12 +179,12 @@ done
 hdr "4/4" "GCS Operator Console (Vite React :5173)"
 echo "  → Starting React GCS dashboard..."
 if [ ! -d "$ROOT/frontend/node_modules" ]; then
-    echo "  → Installing frontend npm dependencies..."
-    (cd "$ROOT/frontend" && npm install) || fail "npm install failed"
+    echo "  → Installing frontend pnpm dependencies..."
+    (cd "$ROOT/frontend" && pnpm install) || fail "pnpm install failed"
 fi
 
 cd "$ROOT/frontend"
-npm run dev > /tmp/cyclone_frontend.log 2>&1 &
+pnpm run dev > /tmp/cyclone_frontend.log 2>&1 &
 FRONTEND_PID=$!
 cd "$ROOT"
 
