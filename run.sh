@@ -156,25 +156,21 @@ else
     $PYTHON -u "$ROOT/backend/inference.py" > /tmp/cyclone_inference.log 2>&1 &
     INFERENCE_PID=$!
 
-    # Wait up to 10 seconds for WebSocket port 8765 to open
+    # Wait up to 12 seconds for WebSocket port 8765 to open (port-only check; process may fork)
     echo "  → Waiting for inference engine startup..."
-    for i in $(seq 1 10); do
+    INFERENCE_UP=false
+    for i in $(seq 1 12); do
         sleep 1
-        if kill -0 $INFERENCE_PID 2>/dev/null; then
-            if ss -tlnp 2>/dev/null | grep -q ':8765' || \
-               netstat -tlnp 2>/dev/null | grep -q ':8765' || \
-               lsof -ti :8765 >/dev/null 2>&1; then
-                ok "Digital Twin Inference Engine live (PID $INFERENCE_PID) → ws://127.0.0.1:8765"
-                break
-            fi
-        else
-            warn "Inference engine background process exited. Check /tmp/cyclone_inference.log"
+        if ss -tlnp 2>/dev/null | grep -q ':8765' || lsof -ti :8765 >/dev/null 2>&1; then
+            ok "Digital Twin Inference Engine live (PID $INFERENCE_PID) → ws://127.0.0.1:8765"
+            INFERENCE_UP=true
             break
         fi
-        if [ $i -eq 10 ]; then
-            ok "Inference engine initialized (PID $INFERENCE_PID)"
-        fi
     done
+    if [ "$INFERENCE_UP" = false ]; then
+        warn "Inference engine slow to start — check /tmp/cyclone_inference.log"
+        tail -5 /tmp/cyclone_inference.log 2>/dev/null | sed 's/^/    /'
+    fi
 fi
 
 # Step 3: launch FastAPI Application Server on port 8000
@@ -189,20 +185,20 @@ else
     BACKEND_PID=$!
 fi
 
-# Wait up to 10 seconds for port 8000
-for i in $(seq 1 10); do
+# Wait up to 15 seconds for port 8000 (uvicorn reloader forks — use port-only check)
+BACKEND_UP=false
+for i in $(seq 1 15); do
     sleep 1
-    if kill -0 $BACKEND_PID 2>/dev/null; then
-        if ss -tlnp 2>/dev/null | grep -q ':8000' || \
-           netstat -tlnp 2>/dev/null | grep -q ':8000' || \
-           lsof -ti :8000 >/dev/null 2>&1; then
-            ok "FastAPI Backend live (PID $BACKEND_PID) → http://localhost:8000"
-            break
-        fi
-    else
-        fail "FastAPI server failed to start. Check /tmp/cyclone_backend.log"
+    if ss -tlnp 2>/dev/null | grep -q ':8000' || lsof -ti :8000 >/dev/null 2>&1; then
+        ok "FastAPI Backend live (PID $BACKEND_PID) → http://localhost:8000"
+        BACKEND_UP=true
+        break
     fi
 done
+if [ "$BACKEND_UP" = false ]; then
+    warn "FastAPI slow to start — last log lines:"
+    tail -10 /tmp/cyclone_backend.log 2>/dev/null | sed 's/^/    /'
+fi
 
 # Step 4: launch the Vite React GCS Operator Console on port 5173
 hdr "4/4" "GCS Operator Console (Vite React :5173)"
@@ -268,10 +264,10 @@ cleanup() {
 }
 trap cleanup INT TERM
 
-# Monitor services by checking listening ports and inference process
+# Monitor services by checking listening ports only (PIDs unreliable due to fork/exec)
 while true; do
-    if [ -n "${INFERENCE_PID:-}" ] && ! kill -0 "$INFERENCE_PID" 2>/dev/null; then
-        echo -e "\n${RED}✗ Inference Engine stopped unexpectedly (PID $INFERENCE_PID).${NC}"
+    if ! ss -tlnp 2>/dev/null | grep -q ':8765' && ! lsof -ti :8765 >/dev/null 2>&1; then
+        echo -e "\n${RED}✗ Inference Engine stopped unexpectedly (:8765 gone).${NC}"
         cleanup
     fi
     if ! ss -tlnp 2>/dev/null | grep -q ':8000' && ! lsof -ti :8000 >/dev/null 2>&1; then
@@ -282,5 +278,5 @@ while true; do
         echo -e "\n${RED}✗ Frontend GCS console stopped unexpectedly.${NC}"
         cleanup
     fi
-    sleep 3
+    sleep 5
 done
