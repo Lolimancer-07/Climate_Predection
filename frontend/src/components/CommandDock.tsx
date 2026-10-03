@@ -47,6 +47,7 @@ const SCENARIO_FAULTS = [
 ];
 
 export function CommandDock() {
+  const isStaticDemo = import.meta.env.VITE_STATIC_DEMO === 'true';
   const {
     playbackSpeed,
     setPlaybackSpeed,
@@ -66,6 +67,7 @@ export function CommandDock() {
   const [showWhatIf, setShowWhatIf] = useState(false);
 
   const handleStageChange = (val: string) => {
+    if (isStaticDemo) return;
     setSelectedStage(val);
     const opt = STAGE_OPTIONS.find((s) => s.value === val);
     if (opt) {
@@ -75,6 +77,7 @@ export function CommandDock() {
   };
 
   const handleInjectFault = () => {
+    if (isStaticDemo) return;
     setJustCleared(false);
     setActiveScenario(selectedFault);
     const faultMeta = SCENARIO_FAULTS.find((f) => f.value === selectedFault);
@@ -84,6 +87,7 @@ export function CommandDock() {
   };
 
   const handleClearFaults = () => {
+    if (isStaticDemo) return;
     setActiveScenario(null);
     setJustCleared(true);
     toast.success('All Injected Faults Cleared', {
@@ -93,6 +97,7 @@ export function CommandDock() {
   };
 
   const handleStartDemo = () => {
+    if (isStaticDemo) return;
     setDemoState({
       active: true,
       step: 1,
@@ -106,6 +111,7 @@ export function CommandDock() {
   };
 
   const handleNextDemoStep = () => {
+    if (isStaticDemo) return;
     const next = demoState.step + 1;
     if (next > 9) {
       setDemoState((prev) => ({ ...prev, active: false }));
@@ -140,9 +146,32 @@ export function CommandDock() {
   };
 
   const handleStopDemo = () => {
+    if (isStaticDemo) return;
     setDemoState((prev) => ({ ...prev, active: false }));
     toast('Demo Sequence Stopped');
   };
+
+  if (isStaticDemo) {
+    const controls = ['Lead-time stage', 'Scenario injection', 'Simulation playback', 'Scripted demo', 'What-if simulator'];
+    return (
+      <section className="rounded-xl border border-border/80 bg-card p-4 text-foreground" aria-label="Read-only mission controls">
+        <div className="flex items-start gap-3">
+          <div className="rounded-lg bg-amber-500/10 p-2 text-amber-400"><ShieldAlert className="h-4 w-4" /></div>
+          <div>
+            <h2 className="text-sm font-semibold">Mission controls are disabled</h2>
+            <p className="mt-1 text-xs text-muted-foreground">This public preview has no live backend. Scenario injection, simulation playback, and demo actions are unavailable.</p>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {controls.map((label) => (
+            <button key={label} type="button" disabled aria-disabled="true" className="flex h-8 cursor-not-allowed items-center justify-center rounded-lg border border-border/70 bg-muted/40 px-3 text-xs text-muted-foreground opacity-60">
+              {label} · unavailable
+            </button>
+          ))}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <>
