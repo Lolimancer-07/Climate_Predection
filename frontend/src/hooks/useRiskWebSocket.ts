@@ -21,6 +21,7 @@ interface UseRiskWebSocketOptions {
 }
 
 const WS_BASE = import.meta.env.VITE_WS_URL ?? 'ws://localhost:8000';
+const IS_STATIC_DEMO = import.meta.env.VITE_STATIC_DEMO === 'true';
 
 export function useRiskWebSocket({
   districtId,
@@ -37,6 +38,11 @@ export function useRiskWebSocket({
   useEffect(() => {
     let unmounted = false;
     let retryCount = 0;
+
+    if (IS_STATIC_DEMO) {
+      setConnectionStatus('disconnected');
+      return () => { unmounted = true; };
+    }
 
     const connect = () => {
       if (unmounted || !enabled || !districtId) return;

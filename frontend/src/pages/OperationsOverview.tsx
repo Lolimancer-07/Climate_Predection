@@ -86,6 +86,7 @@ function badgeStyle(color: "destructive" | "warning" | "sky") {
 
 export function OperationsOverview({ onNavigate }: Props) {
   const [selectedDistrict] = useState("IN-OD-PURI");
+  const isStaticDemo = import.meta.env.VITE_STATIC_DEMO === 'true';
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-4 py-4 md:gap-5 md:py-5">
@@ -96,10 +97,10 @@ export function OperationsOverview({ onNavigate }: Props) {
         surgeM={4.2}
         rainfallMm={312}
         exposedPop={284000}
-        alertLevel="CRITICAL"
-        dataMode="FORECAST"
-        wsConnected={true}
-        onDispatch={() => onNavigate && onNavigate("advisories")}
+        alertLevel={isStaticDemo ? "NOMINAL" : "CRITICAL"}
+        dataMode={isStaticDemo ? "SIMULATED" : "FORECAST"}
+        wsConnected={!isStaticDemo}
+        onDispatch={!isStaticDemo ? () => onNavigate && onNavigate("advisories") : undefined}
       />
 
       {/* ── KPI Overview Cards ──────────────────────────────────────────── */}
@@ -114,7 +115,8 @@ export function OperationsOverview({ onNavigate }: Props) {
       {/* Row 2: Active Advisories */}
       <div className="px-4 lg:px-6">
         <ActiveAdvisoriesWidget
-          severity="CRITICAL"
+          severity={isStaticDemo ? "NOMINAL" : "CRITICAL"}
+          staticDemo={isStaticDemo}
           onNavigateToAdvisories={() =>
             onNavigate && onNavigate("advisories")
           }
@@ -134,11 +136,11 @@ export function OperationsOverview({ onNavigate }: Props) {
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-sky-400" />
               <h3 className="text-sm font-bold text-foreground">
-                Highest-Risk Wards — {selectedDistrict}
+                {isStaticDemo ? "Illustrative Ward Samples" : "Highest-Risk Wards"} — {selectedDistrict}
               </h3>
             </div>
             <span className="font-mono text-xs text-muted-foreground">
-              Spatially Resolved
+              {isStaticDemo ? "SAMPLE ONLY · NOT A DIRECTIVE" : "Spatially Resolved"}
             </span>
           </div>
 
@@ -165,14 +167,14 @@ export function OperationsOverview({ onNavigate }: Props) {
                           : "text-sky-400"
                       }`}
                     >
-                      Risk {w.risk}/100
+                      {isStaticDemo ? "Sample score" : "Risk"} {w.risk}/100
                     </div>
                     <div className="text-[10px] text-muted-foreground">
                       Surge + TWI Rain
                     </div>
                   </div>
                   <span className={`rounded px-2 py-0.5 font-bold text-[10px] ${badgeStyle(w.color)}`}>
-                    {w.label}
+                    {isStaticDemo ? "SAMPLE" : w.label}
                   </span>
                 </div>
               </div>
@@ -202,7 +204,7 @@ export function OperationsOverview({ onNavigate }: Props) {
                       : "text-amber-400"
                   }`}
                 >
-                  {s.status}
+                  {isStaticDemo ? "DEMO ONLY" : s.status}
                 </span>
               </div>
             ))}

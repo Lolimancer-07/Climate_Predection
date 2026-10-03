@@ -200,3 +200,113 @@
   .static-demo-metric-card { min-height: 79px; }
   .static-demo-map-frame { height: 270px; }
 }
+
+
+/* Feature navigation and reused screens, scoped so the existing overview remains unchanged. */
+.static-demo-nav-group { display: flex; flex-direction: column; gap: 3px; margin-bottom: 11px; }
+.static-demo-nav-item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+.static-demo-nav-item:hover { background: #f4f7f8; color: #17212b; }
+.static-demo-nav-item.is-active { color: #17212b; background: #edf6f3; }
+.static-demo-mobile-nav { display: none; }
+.static-demo-tool-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 29px;
+  padding: 0 8px;
+  border: 1px solid var(--sd-line);
+  border-radius: 7px;
+  color: #47515a;
+  background: #fff;
+  font: 700 8px/1 inherit;
+  letter-spacing: .05em;
+  cursor: pointer;
+}
+.static-demo-tool-button:hover, .static-demo-tool-button.is-selected { color: #08785f; border-color: #bce9d9; background: #eff9f5; }
+.static-demo-feature-workspace {
+  --color-bg: #f4f6f8;
+  --color-surface: #ffffff;
+  --color-surface-2: #f7f9fa;
+  --color-border: rgba(23, 33, 43, .14);
+  --color-text: #17212b;
+  --color-text-muted: #66727e;
+  --color-text-dim: #54616a;
+  --color-sky: #1476a8;
+  --color-safe: #0e9f7a;
+  --color-warning: #b77713;
+  --color-evacuation: #c44141;
+  --color-trigger-fired: #8c4db5;
+  min-width: 0;
+  min-height: 360px;
+  overflow: auto;
+  padding: 13px;
+  color: var(--sd-ink);
+  background: #f4f6f8;
+  border: 1px solid var(--sd-line);
+  border-radius: 10px;
+}
+.static-demo-feature-workspace .static-demo-feature-padding { padding: 4px; }
+.static-demo-feature-workspace .bg-background { background-color: #f4f6f8; }
+.static-demo-feature-workspace .text-foreground { color: #17212b; }
+.static-demo-feature-workspace .text-muted-foreground { color: #66727e; }
+.static-demo-feature-workspace .border-border { border-color: rgba(23, 33, 43, .14); }
+.static-demo-feature-workspace [style*="#e2e8f0"] { color: #26343d !important; }
+.static-demo-tools-overlay {
+  position: fixed;
+  z-index: 45;
+  right: 14px;
+  bottom: 14px;
+  left: 238px;
+  overflow: auto;
+  max-height: min(58vh, 440px);
+  background: #fff;
+  border: 1px solid var(--sd-line);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(20, 35, 48, .2);
+}
+.static-demo-tools-heading { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #f8fafb; border-bottom: 1px solid var(--sd-line); }
+.static-demo-tools-heading strong, .static-demo-tools-heading span { display: block; }
+.static-demo-tools-heading strong { font-size: 11px; }
+.static-demo-tools-heading span { margin-top: 2px; color: var(--sd-muted); font-size: 9px; }
+.static-demo-tools-heading button { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--sd-line); border-radius: 7px; color: #47515a; background: #fff; cursor: pointer; }
+.static-demo-tools-overlay footer { position: static; box-shadow: none; }
+
+@media (max-width: 720px) {
+  .static-demo-mobile-nav {
+    display: flex;
+    position: sticky;
+    top: 56px;
+    z-index: 20;
+    gap: 5px;
+    padding: 7px 10px;
+    overflow-x: auto;
+    background: rgba(255, 255, 255, .98);
+    border-bottom: 1px solid var(--sd-line);
+    scrollbar-width: thin;
+  }
+  .static-demo-mobile-nav button {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 6px;
+    min-height: 30px;
+    padding: 0 9px;
+    border: 1px solid var(--sd-line);
+    border-radius: 999px;
+    color: #56616b;
+    background: #fff;
+    font: 600 9px/1 inherit;
+    cursor: pointer;
+  }
+  .static-demo-mobile-nav button.is-active { color: #08785f; background: #edf6f3; border-color: #bce9d9; }
+  .static-demo-tool-button span { display: none; }
+  .static-demo-feature-workspace { padding: 9px; }
+  .static-demo-tools-overlay { right: 8px; bottom: 8px; left: 8px; max-height: 65vh; }
+}

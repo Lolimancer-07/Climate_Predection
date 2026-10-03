@@ -48,6 +48,7 @@ export interface UseRunContextReturn {
 
 const WS_BASE = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const IS_STATIC_DEMO = import.meta.env.VITE_STATIC_DEMO === 'true';
 const RECONNECT_BASE_MS = 1000;
 const RECONNECT_MAX_MS = 30000;
 const POLL_INTERVAL_MS = 10000;
@@ -75,7 +76,7 @@ export function useRunContext(stormId: string | null): UseRunContextReturn {
     : [];
 
   const fetchRunFromRest = useCallback(async (runId: string) => {
-    if (!mountedRef.current) return;
+    if (IS_STATIC_DEMO || !mountedRef.current) return;
     try {
       const res = await fetch(`${API_BASE}/v1/storms/runs/${runId}`);
       if (!res.ok) return;
@@ -89,7 +90,7 @@ export function useRunContext(stormId: string | null): UseRunContextReturn {
   }, [queryClient]);
 
   const connect = useCallback(() => {
-    if (!stormId || !mountedRef.current) return;
+    if (IS_STATIC_DEMO || !stormId || !mountedRef.current) return;
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
     const url = `${WS_BASE}/v1/storms/ws/${stormId}`;

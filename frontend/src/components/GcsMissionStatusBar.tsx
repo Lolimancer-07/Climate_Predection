@@ -251,14 +251,16 @@ export function GcsMissionStatusBar({
           </button>
 
           {/* HITL Dispatch (= Safe Return equivalent) */}
-          <button
-            onClick={onDispatch}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-bold hover:bg-sky-700 transition-colors shadow-sm"
-          >
-            <Shield className="size-3" />
-            HITL DISPATCH
-            <ChevronRight className="size-3" />
-          </button>
+          {onDispatch && (
+            <button
+              onClick={onDispatch}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-bold hover:bg-sky-700 transition-colors shadow-sm"
+            >
+              <Shield className="size-3" />
+              HITL DISPATCH
+              <ChevronRight className="size-3" />
+            </button>
+          )}
         </div>
       </div>
     </div>

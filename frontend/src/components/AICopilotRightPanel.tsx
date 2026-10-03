@@ -54,6 +54,7 @@ const QUICK_PROMPTS = [
 ];
 
 const TYPEWRITER_SPEED_MS = 6;
+const IS_STATIC_DEMO = import.meta.env.VITE_STATIC_DEMO === 'true';
 
 export function AICopilotRightPanel() {
   const { isCopilotOpen, setIsCopilotOpen, activeStorm, selectedDistrict } = useStorm();
@@ -63,8 +64,12 @@ export function AICopilotRightPanel() {
     {
       id: 'init-1',
       role: 'assistant',
-      text: 'Cyclone Nexus AI Copilot online. Telemetry synchronized with Bay of Bengal Cyclone Ingestion Core & Inverted Barometer models. Standing by for operational risk queries.',
-      displayText: 'Cyclone Nexus AI Copilot online. Telemetry synchronized with Bay of Bengal Cyclone Ingestion Core & Inverted Barometer models. Standing by for operational risk queries.',
+      text: IS_STATIC_DEMO
+        ? 'Static preview only. The AI backend is not connected, so no operational guidance can be generated.'
+        : 'Cyclone Nexus AI Copilot online. Telemetry synchronized with Bay of Bengal Cyclone Ingestion Core & Inverted Barometer models. Standing by for operational risk queries.',
+      displayText: IS_STATIC_DEMO
+        ? 'Static preview only. The AI backend is not connected, so no operational guidance can be generated.'
+        : 'Cyclone Nexus AI Copilot online. Telemetry synchronized with Bay of Bengal Cyclone Ingestion Core & Inverted Barometer models. Standing by for operational risk queries.',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
       category: 'GENERAL_STATUS',
       follow_ups: QUICK_PROMPTS.slice(0, 3),
@@ -117,6 +122,23 @@ export function AICopilotRightPanel() {
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setWaiting(true);
+
+    if (IS_STATIC_DEMO) {
+      const respId = `resp-${Date.now()}`;
+      const offlineText = 'This public preview has no AI or live-data backend. This interaction is not an advisory and must not be used for operational decisions.';
+      setMessages((prev) => [...prev, {
+        id: respId,
+        role: 'assistant',
+        text: offlineText,
+        displayText: offlineText,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        category: 'GENERAL_STATUS',
+        follow_ups: [],
+        isStreaming: false,
+      }]);
+      setWaiting(false);
+      return;
+    }
 
     try {
       const res = await axios.post('/advisory/copilot-query', {
@@ -173,8 +195,12 @@ export function AICopilotRightPanel() {
       {
         id: `init-${Date.now()}`,
         role: 'assistant',
-        text: 'Nexus console re-initialized. Live telemetry monitoring active. Ask me anything regarding storm surge, flood run-off, evacuation routes, or parametric triggers.',
-        displayText: 'Nexus console re-initialized. Live telemetry monitoring active. Ask me anything regarding storm surge, flood run-off, evacuation routes, or parametric triggers.',
+        text: IS_STATIC_DEMO
+          ? 'Static preview only. The AI backend is not connected, so no operational guidance can be generated.'
+          : 'Nexus console re-initialized. Live telemetry monitoring active. Ask me anything regarding storm surge, flood run-off, evacuation routes, or parametric triggers.',
+        displayText: IS_STATIC_DEMO
+          ? 'Static preview only. The AI backend is not connected, so no operational guidance can be generated.'
+          : 'Nexus console re-initialized. Live telemetry monitoring active. Ask me anything regarding storm surge, flood run-off, evacuation routes, or parametric triggers.',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
         category: 'GENERAL_STATUS',
         follow_ups: QUICK_PROMPTS.slice(0, 3),
@@ -196,7 +222,7 @@ export function AICopilotRightPanel() {
           <div className="flex items-center gap-3">
             <div className="relative flex h-8 w-8 items-center justify-center rounded-xl border border-sky-500/30 bg-sky-500/10 text-sky-400 shadow-md">
               <Brain className="h-4 w-4" />
-              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-background animate-pulse" />
+              <span className={`absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full ring-2 ring-background ${IS_STATIC_DEMO ? 'bg-amber-400' : 'bg-emerald-400 animate-pulse'}`} />
             </div>
             <div>
               <div className="font-mono text-sm font-bold text-foreground">
@@ -209,8 +235,8 @@ export function AICopilotRightPanel() {
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className="rounded border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 font-mono text-[9px] font-bold text-emerald-400">
-              10 HZ LIVE
+            <span className={`rounded border px-2 py-0.5 font-mono text-[9px] font-bold ${IS_STATIC_DEMO ? 'border-amber-500/40 bg-amber-500/10 text-amber-500' : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400'}`}>
+              {IS_STATIC_DEMO ? 'OFFLINE DEMO' : '10 HZ LIVE'}
             </span>
             <button
               onClick={handleClear}
@@ -230,7 +256,9 @@ export function AICopilotRightPanel() {
         </div>
 
         <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-          Real-time reasoning grounded in Bay of Bengal parametric surge, TWI flood runoff, and structural fragility models.
+          {IS_STATIC_DEMO
+            ? 'Copilot interface preview. AI, telemetry, and model services are not connected in this public build.'
+            : 'Real-time reasoning grounded in Bay of Bengal parametric surge, TWI flood runoff, and structural fragility models.'}
         </p>
       </div>
 
@@ -360,7 +388,7 @@ export function AICopilotRightPanel() {
           </button>
         </form>
         <p className="mt-1 text-center font-mono text-[9px] text-muted-foreground">
-          Grounded in live digital twin state · Zero hallucination
+          {IS_STATIC_DEMO ? 'Offline interface preview · no operational guidance' : 'Grounded in live digital twin state · Zero hallucination'}
         </p>
       </div>
     </aside>

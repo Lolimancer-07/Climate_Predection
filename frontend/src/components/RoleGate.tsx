@@ -19,7 +19,9 @@ const RoleContext = createContext<RoleContextValue>({
 });
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {
-  const [role, setRole] = useState<UserRole>('ddma_operator');
+  const [role, setRole] = useState<UserRole>(
+    import.meta.env.VITE_STATIC_DEMO === 'true' ? 'admin' : 'ddma_operator',
+  );
   return (
     <RoleContext.Provider value={{ role, setRole }}>
       {children}

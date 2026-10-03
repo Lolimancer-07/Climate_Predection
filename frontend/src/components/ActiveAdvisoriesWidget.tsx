@@ -23,14 +23,41 @@ import {
 interface ActiveAdvisoriesWidgetProps {
   onNavigateToAdvisories?: () => void;
   severity?: 'CRITICAL' | 'WARNING' | 'NOMINAL';
+  staticDemo?: boolean;
 }
 
 export function ActiveAdvisoriesWidget({
   onNavigateToAdvisories,
   severity = 'CRITICAL',
+  staticDemo = false,
 }: ActiveAdvisoriesWidgetProps) {
   const isCritical = severity === 'CRITICAL';
   const isWarning = severity === 'WARNING';
+
+  if (staticDemo) {
+    return (
+      <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
+        <div className="flex items-center justify-between gap-3 border-b border-border/60 bg-muted/20 p-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <div>
+              <h3 className="text-sm font-bold tracking-tight text-foreground">Advisory review module</h3>
+              <p className="text-xs text-muted-foreground">Live directives are suppressed in this public preview.</p>
+            </div>
+          </div>
+          <span className="rounded-full border border-amber-500/50 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase text-amber-700">API OFFLINE</span>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4 text-xs">
+          <p className="max-w-3xl text-muted-foreground">The review screen is available for interface exploration. No evacuation, infrastructure, insurance, or other operational instruction is active or being issued.</p>
+          {onNavigateToAdvisories && (
+            <button onClick={onNavigateToAdvisories} className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary/80">
+              Open review preview <ArrowRight className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">

@@ -57,6 +57,7 @@ interface ConeGeoJSON {
 }
 
 export const StormTrackMap: React.FC<{ stormId: string }> = ({ stormId }) => {
+  const isStaticDemo = import.meta.env.VITE_STATIC_DEMO === 'true';
   const [selectedFix, setSelectedFix] = useState<TrackFix | null>(null);
   const [hoveredFix, setHoveredFix] = useState<TrackFix | null>(null);
 
@@ -69,7 +70,7 @@ export const StormTrackMap: React.FC<{ stormId: string }> = ({ stormId }) => {
       return res.json();
     },
     staleTime: 30_000,
-    enabled: !!stormId,
+    enabled: !!stormId && !isStaticDemo,
   });
 
   // 2. Fetch forecast track
@@ -81,7 +82,7 @@ export const StormTrackMap: React.FC<{ stormId: string }> = ({ stormId }) => {
       return res.json();
     },
     staleTime: 30_000,
-    enabled: !!stormId,
+    enabled: !!stormId && !isStaticDemo,
   });
 
   // 3. Fetch cone of uncertainty
@@ -93,7 +94,7 @@ export const StormTrackMap: React.FC<{ stormId: string }> = ({ stormId }) => {
       return res.json();
     },
     staleTime: 60_000,
-    enabled: !!stormId,
+    enabled: !!stormId && !isStaticDemo,
   });
 
   // Extract all points for bounds calculation

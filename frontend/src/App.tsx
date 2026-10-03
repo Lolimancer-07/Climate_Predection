@@ -351,7 +351,14 @@ function AppContent() {
 
 export default function App() {
   if (import.meta.env.VITE_STATIC_DEMO === 'true') {
-    return <StaticPublicDemo />;
+    return (
+      <RoleProvider>
+        <StormProvider>
+          <StaticPublicDemo />
+          <Toaster theme="light" position="bottom-right" richColors />
+        </StormProvider>
+      </RoleProvider>
+    );
   }
 
   return (

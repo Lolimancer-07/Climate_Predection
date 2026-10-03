@@ -13,6 +13,7 @@ import { useStorm } from '../context/StormContext';
 import { toast } from 'sonner';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const IS_STATIC_DEMO = import.meta.env.VITE_STATIC_DEMO === 'true';
 
 interface ScenarioParams {
   track_offset_deg: number;
@@ -35,6 +36,7 @@ async function postScenario(body: {
   event_id: string;
   district_id: string;
 } & ScenarioParams) {
+  if (IS_STATIC_DEMO) throw new Error('Scenario execution requires a backend, which is not connected in this preview.');
   const res = await fetch(`${API_BASE}/v1/scenarios`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Role': 'ddma_operator' },
@@ -192,7 +194,7 @@ export function ScenarioLabPage() {
   const { data: comparison, isLoading: compLoading } = useQuery({
     queryKey: ['scenario', scenarioId],
     queryFn: () => fetchScenarioComparison(scenarioId!),
-    enabled: !!scenarioId,
+    enabled: !!scenarioId && !IS_STATIC_DEMO,
     staleTime: Infinity,
   });
 
@@ -310,17 +312,17 @@ export function ScenarioLabPage() {
 
             <button
               onClick={() => createScenario.mutate(params)}
-              disabled={!hasBaseline || createScenario.isPending}
+              disabled={IS_STATIC_DEMO || !hasBaseline || createScenario.isPending}
               style={{
                 width: '100%', padding: '10px', borderRadius: 8,
-                background: hasBaseline ? 'rgba(245,158,11,0.15)' : 'rgba(100,116,139,0.15)',
-                border: `1px solid ${hasBaseline ? 'rgba(245,158,11,0.4)' : 'rgba(100,116,139,0.3)'}`,
-                color: hasBaseline ? '#f59e0b' : '#64748b',
-                fontSize: 12, fontWeight: 700, cursor: hasBaseline ? 'pointer' : 'not-allowed',
+                background: hasBaseline && !IS_STATIC_DEMO ? 'rgba(245,158,11,0.15)' : 'rgba(100,116,139,0.15)',
+                border: `1px solid ${hasBaseline && !IS_STATIC_DEMO ? 'rgba(245,158,11,0.4)' : 'rgba(100,116,139,0.3)'}`,
+                color: hasBaseline && !IS_STATIC_DEMO ? '#f59e0b' : '#64748b',
+                fontSize: 12, fontWeight: 700, cursor: hasBaseline && !IS_STATIC_DEMO ? 'pointer' : 'not-allowed',
                 transition: 'all 0.2s',
               }}
             >
-              {createScenario.isPending ? '⏳ Running scenario…' : '⚗️ Run Scenario'}
+              {IS_STATIC_DEMO ? 'Backend required to run scenario' : createScenario.isPending ? '⏳ Running scenario…' : '⚗️ Run Scenario'}
             </button>
 
             {createScenario.isError && (
@@ -387,6 +389,7 @@ function PastScenariosList({ onSelect, activeId }: {
       return res.ok ? res.json() : { scenarios: [] };
     },
     staleTime: 10_000,
+    enabled: !IS_STATIC_DEMO,
   });
 
   const scenarios = (data?.scenarios ?? []).slice(0, 5);

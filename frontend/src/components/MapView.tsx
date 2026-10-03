@@ -18,6 +18,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const IS_STATIC_DEMO = import.meta.env.VITE_STATIC_DEMO === 'true';
 const MAP_STYLE = import.meta.env.VITE_MAP_STYLE_URL ||
   'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
@@ -83,49 +84,49 @@ export function MapView({
     queryKey: ['track', stormId, 'observed'],
     queryFn: () => fetchGeoJSON(`${API_BASE}/v1/storms/${stormId}/track?fix_type=observed`),
     staleTime: 30_000,
-    enabled: !!stormId,
+    enabled: !!stormId && !IS_STATIC_DEMO,
   });
 
   const { data: forecastTrack } = useQuery({
     queryKey: ['track', stormId, 'forecast'],
     queryFn: () => fetchGeoJSON(`${API_BASE}/v1/storms/${stormId}/track?fix_type=forecast`),
     staleTime: 30_000,
-    enabled: !!stormId,
+    enabled: !!stormId && !IS_STATIC_DEMO,
   });
 
   const { data: cone } = useQuery({
     queryKey: ['cone', stormId],
     queryFn: () => fetchGeoJSON(`${API_BASE}/v1/storms/${stormId}/cone`),
     staleTime: 60_000,
-    enabled: !!stormId,
+    enabled: !!stormId && !IS_STATIC_DEMO,
   });
 
   const { data: surgeZone } = useQuery({
     queryKey: ['hazard', activeRunId, 'surge'],
     queryFn: () => fetchGeoJSON(`${API_BASE}/v1/storms/runs/${activeRunId}/hazards/surge`),
     staleTime: 60_000,
-    enabled: !!activeRunId && visibleLayers.has('surge-zone'),
+    enabled: !!activeRunId && visibleLayers.has('surge-zone') && !IS_STATIC_DEMO,
   });
 
   const { data: rainfallZone } = useQuery({
     queryKey: ['hazard', activeRunId, 'rainfall'],
     queryFn: () => fetchGeoJSON(`${API_BASE}/v1/storms/runs/${activeRunId}/hazards/rainfall`),
     staleTime: 60_000,
-    enabled: !!activeRunId && visibleLayers.has('rainfall-zone'),
+    enabled: !!activeRunId && visibleLayers.has('rainfall-zone') && !IS_STATIC_DEMO,
   });
 
   const { data: windZone } = useQuery({
     queryKey: ['hazard', activeRunId, 'wind'],
     queryFn: () => fetchGeoJSON(`${API_BASE}/v1/storms/runs/${activeRunId}/hazards/wind`),
     staleTime: 60_000,
-    enabled: !!activeRunId && visibleLayers.has('wind-zone'),
+    enabled: !!activeRunId && visibleLayers.has('wind-zone') && !IS_STATIC_DEMO,
   });
 
   const { data: structuralRisk } = useQuery({
     queryKey: ['hazard', activeRunId, 'structural'],
     queryFn: () => fetchGeoJSON(`${API_BASE}/v1/storms/runs/${activeRunId}/hazards/structural`),
     staleTime: 60_000,
-    enabled: !!activeRunId && visibleLayers.has('structural-risk'),
+    enabled: !!activeRunId && visibleLayers.has('structural-risk') && !IS_STATIC_DEMO,
   });
 
   const toggleLayer = useCallback((layerId: string) => {

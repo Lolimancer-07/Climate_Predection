@@ -74,10 +74,11 @@ function StormCard({ storm, selected, onClick }: { storm: any; selected: boolean
 
 export const LiveStormTracker: React.FC<LiveStormTrackerProps> = ({ onNavigateToDashboard }) => {
   const { activeStorm, setActiveStorm, selectedDistrict } = useStorm();
+  const isStaticDemo = import.meta.env.VITE_STATIC_DEMO === 'true';
   const [selectedStormId, setSelectedStormId] = useState<string | null>(activeStorm?.storm_id ?? null);
 
   // Fetch active storms from real API
-  const { data: storms = [], isLoading: stormsLoading, isError: stormsError } = useQuery<any[]>({
+  const { data: fetchedStorms = [], isLoading: fetchedStormsLoading, isError: fetchedStormsError } = useQuery<any[]>({
     queryKey: ['storms-active'],
     queryFn: async () => {
       const r = await fetch('/api/v1/storms/active');
@@ -86,6 +87,7 @@ export const LiveStormTracker: React.FC<LiveStormTrackerProps> = ({ onNavigateTo
     },
     staleTime: 30_000,
     retry: 1,
+    enabled: !isStaticDemo,
     onSuccess: (data: any[]) => {
       if (data.length > 0 && !selectedStormId) {
         setSelectedStormId(data[0].storm_id);
@@ -93,6 +95,12 @@ export const LiveStormTracker: React.FC<LiveStormTrackerProps> = ({ onNavigateTo
       }
     },
   } as any);
+
+  const storms = isStaticDemo
+    ? (activeStorm ? [{ ...activeStorm, data_mode: 'ILLUSTRATIVE', provider: 'Static preview', freshness_seconds: 0 }] : [])
+    : fetchedStorms;
+  const stormsLoading = !isStaticDemo && fetchedStormsLoading;
+  const stormsError = !isStaticDemo && fetchedStormsError;
 
   // Fetch timeline for selected storm
   const { data: timelineData } = useQuery({
@@ -103,7 +111,7 @@ export const LiveStormTracker: React.FC<LiveStormTrackerProps> = ({ onNavigateTo
       const j = await r.json();
       return j.timeline ?? [];
     },
-    enabled: !!selectedStormId,
+    enabled: !!selectedStormId && !isStaticDemo,
     staleTime: 60_000,
   });
 
@@ -115,13 +123,14 @@ export const LiveStormTracker: React.FC<LiveStormTrackerProps> = ({ onNavigateTo
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return r.json();
     },
-    enabled: !!selectedStormId,
+    enabled: !!selectedStormId && !isStaticDemo,
     staleTime: 60_000,
   });
 
   // Run pipeline mutation
   const runMutation = useMutation({
     mutationFn: async () => {
+      if (isStaticDemo) throw new Error('The live pipeline is unavailable in this public preview.');
       const r = await fetch(`/api/v1/storms/${selectedStormId}/run-live-pipeline`, { method: 'POST' });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return r.json();
@@ -146,7 +155,7 @@ export const LiveStormTracker: React.FC<LiveStormTrackerProps> = ({ onNavigateTo
             Active Storms
           </div>
           <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>
-            Source: mock provider · Bay of Bengal basin
+            {isStaticDemo ? 'Static illustrative fixture · backend disconnected' : 'Source: mock provider · Bay of Bengal basin'}
           </div>
         </div>
 
@@ -215,17 +224,17 @@ export const LiveStormTracker: React.FC<LiveStormTrackerProps> = ({ onNavigateTo
           <div style={{ padding: '12px 14px', borderTop: '1px solid var(--color-border)' }}>
             <button
               onClick={() => runMutation.mutate()}
-              disabled={runMutation.isPending}
+              disabled={isStaticDemo || runMutation.isPending}
               style={{
                 width: '100%', padding: '9px 0', borderRadius: 7, border: 'none',
-                background: runMutation.isPending
+                background: isStaticDemo || runMutation.isPending
                   ? 'var(--color-surface-2)'
                   : 'linear-gradient(135deg, var(--color-sky), var(--color-indigo))',
-                color: runMutation.isPending ? 'var(--color-text-muted)' : 'white',
-                fontSize: 12, fontWeight: 600, cursor: runMutation.isPending ? 'not-allowed' : 'pointer',
+                color: isStaticDemo || runMutation.isPending ? 'var(--color-text-muted)' : 'white',
+                fontSize: 12, fontWeight: 600, cursor: isStaticDemo || runMutation.isPending ? 'not-allowed' : 'pointer',
               }}
             >
-              {runMutation.isPending ? '⟳ Running…' : '▶ Run Pipeline'}
+              {isStaticDemo ? '◌ Pipeline unavailable in preview' : runMutation.isPending ? '⟳ Running…' : '▶ Run Pipeline'}
             </button>
             {runMutation.data && (
               <div style={{ fontSize: 10, color: 'var(--color-safe)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
