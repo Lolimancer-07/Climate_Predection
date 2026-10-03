@@ -42,6 +42,7 @@ import AdminPanel                from './pages/AdminPanel';
 import { AdvisoryReviewPage }    from './pages/AdvisoryReviewPage';
 import { ModelEvidencePage }     from './pages/ModelEvidencePage';
 import { ScenarioLabPage }       from './pages/ScenarioLabPage';
+import StaticPublicDemo          from './pages/StaticPublicDemo';
 
 // ── Icons ──────────────────────────────────────────────────────────────────
 import {
@@ -349,6 +350,10 @@ function AppContent() {
 }
 
 export default function App() {
+  if (import.meta.env.VITE_STATIC_DEMO === 'true') {
+    return <StaticPublicDemo />;
+  }
+
   return (
     <RoleProvider>
       <StormProvider>

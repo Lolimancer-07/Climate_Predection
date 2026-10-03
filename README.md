@@ -153,3 +153,8 @@ Built with **React 18 + TypeScript + Vite + MapLibre GL + TanStack Query + Tailw
 - **Telemetry FDR Monitor:** Protocol sniffer and meteorological frame decoder.
 - **Model Evidence & Proof:** Zero-hallucination numeric validation against upstream JSON payloads.
 - **Cyclone Nexus AI Copilot:** Sliding copilot panel with intent classification across 12 disaster response categories.
+
+
+## Public static preview
+
+The `Deploy public static demo` GitHub Actions workflow builds and publishes the frontend to [GitHub Pages](https://lolimancer-07.github.io/Climate_Predection/). The Pages build is intentionally read-only: it shows an Esri street basemap and a clearly labeled illustrative overlay, but it does not connect to the API, display live hazard data, issue advisories, or dispatch actions. The FastAPI/PostGIS backend remains a separate deployment and must be hosted/configured before operational data can appear.
